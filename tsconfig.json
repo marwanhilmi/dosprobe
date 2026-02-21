@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "rewriteRelativeImportExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@dosprobe/shared": ["./packages/shared/src/index.ts"],
+      "@dosprobe/core": ["./packages/core/src/index.ts"],
+      "@dosprobe/core/*": ["./packages/core/src/*"],
+      "@dosprobe/server": ["./packages/server/src/index.ts"]
+    }
+  },
+  "include": [
+    "packages/*/src/**/*.ts"
+  ],
+  "exclude": [
+    "packages/ui/**"
+  ]
+}

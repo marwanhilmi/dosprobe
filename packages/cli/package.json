@@ -1,0 +1,17 @@
+{
+  "name": "@dosprobe/cli",
+  "version": "0.0.1",
+  "type": "module",
+  "bin": {
+    "dosprobe": "./src/index.ts"
+  },
+  "dependencies": {
+    "@dosprobe/core": "workspace:*",
+    "@dosprobe/shared": "workspace:*",
+    "@dosprobe/server": "workspace:*",
+    "yargs": "^17"
+  },
+  "devDependencies": {
+    "@types/yargs": "^17"
+  }
+}

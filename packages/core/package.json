@@ -1,0 +1,11 @@
+{
+  "name": "@dosprobe/core",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@dosprobe/shared": "workspace:*"
+  }
+}

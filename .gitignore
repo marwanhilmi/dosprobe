@@ -1,2 +1,25 @@
 *.iso
 *.qcow2
+
+# Dependencies
+node_modules/
+
+# Runtime data
+data/
+
+# Legacy shared directory (replaced by data/qemu/shared/)
+shared/
+
+# TypeScript build output (we use native TS, but just in case)
+*.tsbuildinfo
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Python venvs (legacy)
+.venv/
+__pycache__/
