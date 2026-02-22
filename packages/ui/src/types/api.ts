@@ -46,11 +46,19 @@ export interface BackendInfo {
   type: 'qemu' | 'dosbox';
   status: BackendStatus;
   pid?: number;
+  vncPort?: number;
   connections?: {
     qmp?: boolean;
     gdb?: boolean;
   };
 }
+
+export interface DisconnectedBackendInfo {
+  type: null;
+  status: 'disconnected';
+}
+
+export type BackendResponse = BackendInfo | DisconnectedBackendInfo;
 
 export interface Snapshot {
   name: string;

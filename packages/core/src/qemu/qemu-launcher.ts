@@ -49,11 +49,12 @@ export class QemuLauncher {
     // Display
     if (config.mode === 'headless') {
       args.push('-display', 'none');
-      if (config.vncPort) {
-        args.push('-vnc', `:${config.vncPort - 5900}`);
-      }
     } else {
       args.push('-display', config.display ?? 'cocoa');
+    }
+
+    if (config.vncPort) {
+      args.push('-vnc', `:${config.vncPort - 5900}`);
     }
     args.push('-vga', 'std');
 

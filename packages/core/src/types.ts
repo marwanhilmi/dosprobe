@@ -73,6 +73,7 @@ export interface BackendInfo {
   type: 'qemu' | 'dosbox';
   status: BackendStatus;
   pid?: number;
+  vncPort?: number;
   connections?: {
     qmp?: boolean;
     gdb?: boolean;

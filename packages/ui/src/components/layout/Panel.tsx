@@ -15,7 +15,7 @@ export function Panel({ title, toolbar, children, className }: PanelProps) {
         <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">{title}</span>
         {toolbar && <div className="flex items-center gap-1">{toolbar}</div>}
       </div>
-      <div className="flex-1 overflow-auto p-2">
+      <div className="flex-1 overflow-auto p-2 relative min-h-0">
         {children}
       </div>
     </div>

@@ -1,8 +1,10 @@
 import http from 'node:http';
+import { readdirSync } from 'node:fs';
 import { Readable } from 'node:stream';
+import { join } from 'node:path';
 import type { CommandModule } from 'yargs';
 import { QemuBackend, DosboxBackend } from '@dosprobe/core';
-import { createApp, attachWebSocket } from '@dosprobe/server';
+import { createApp, attachWebSocket, createVncProxy, bridgeVnc } from '@dosprobe/server';
 import type { BackendFactory, LaunchDefaults } from '@dosprobe/server';
 import { resolveBackendType, resolvePaths, ensureDirs, getProjectConfig } from '../resolve-backend.ts';
 
@@ -61,17 +63,45 @@ export const serveCommand: CommandModule = {
     // Compute launch defaults from resolved project paths
     const qemuPaths = resolvePaths(projectDir, 'qemu');
     const dosboxPaths = resolvePaths(projectDir, 'dosbox');
+    const autoDetectedGameIso = (() => {
+      if (config.game?.iso) {
+        return config.game.iso;
+      }
+      try {
+        const isoFiles = readdirSync(qemuPaths.isosDir)
+          .filter((f) => f.toLowerCase().endsWith('.iso'))
+          .sort();
+        if (isoFiles.length === 1) {
+          return join(qemuPaths.isosDir, isoFiles[0]!);
+        }
+      } catch {
+        // ignore if isos dir does not exist yet
+      }
+      return undefined;
+    })();
     const launchDefaults: LaunchDefaults = {
       qemu: {
         diskImage: qemuPaths.diskImage,
         sharedIso: qemuPaths.sharedIso,
+        gameIso: autoDetectedGameIso,
         qmpSocketPath: qemuPaths.qmpSocketPath,
         capturesDir: qemuPaths.capturesDir,
+        ram: config.qemu?.ram,
+        display: config.qemu?.display,
+        audio: config.qemu?.audio,
+        gdbPort: config.qemu?.gdbPort,
+        accel: config.qemu?.accel,
+        cpu: config.qemu?.cpu,
+        smp: config.qemu?.smp,
       },
       dosbox: {
         driveCPath: dosboxPaths.driveCPath,
         confDir: dosboxPaths.confDir,
         capturesDir: dosboxPaths.capturesDir,
+        gameExe: config.game?.exe,
+        gameIso: config.game?.iso,
+        dosboxBin: config.dosbox?.binary,
+        output: config.dosbox?.renderer,
       },
     };
 
@@ -106,11 +136,35 @@ export const serveCommand: CommandModule = {
       res.end();
     });
 
-    attachWebSocket(server, () => holder.backend);
+    const wss = attachWebSocket(() => holder.backend, holder);
+    const vncWss = createVncProxy();
+
+    server.on('upgrade', (req, socket, head) => {
+      const pathname = req.url ?? '';
+
+      if (pathname === '/ws' || pathname.startsWith('/ws?')) {
+        wss.handleUpgrade(req, socket, head, (ws) => {
+          wss.emit('connection', ws, req);
+        });
+      } else if (pathname === '/vnc') {
+        const backend = holder.backend;
+        if (!backend || !backend.status().vncPort) {
+          socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n');
+          socket.destroy();
+          return;
+        }
+        vncWss.handleUpgrade(req, socket, head, (ws) => {
+          bridgeVnc(ws, backend);
+        });
+      } else {
+        socket.destroy();
+      }
+    });
 
     server.listen(port, () => {
       console.log(`dosprobe server running on http://localhost:${port}`);
       console.log(`WebSocket available at ws://localhost:${port}/ws`);
+      console.log(`VNC proxy available at ws://localhost:${port}/vnc`);
     });
   },
 };

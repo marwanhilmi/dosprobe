@@ -1,4 +1,4 @@
-import type { BackendInfo, Breakpoint, BreakpointType, LaunchConfig, Registers } from '../types/api';
+import type { BackendResponse, Breakpoint, BreakpointType, LaunchConfig, Registers } from '../types/api';
 
 class ApiError extends Error {
   status: number;
@@ -32,7 +32,7 @@ async function apiFetchRaw(path: string, init?: RequestInit): Promise<Response> 
 
 // ── Backend ──
 
-export function getBackend(): Promise<BackendInfo> {
+export function getBackend(): Promise<BackendResponse> {
   return apiFetch('/backend');
 }
 
@@ -60,13 +60,25 @@ export interface LaunchDefaultsResponse {
   qemu: {
     diskImage: string;
     sharedIso: string;
+    gameIso?: string;
     qmpSocketPath: string;
     capturesDir: string;
+    ram?: number;
+    display?: 'cocoa' | 'none';
+    audio?: boolean;
+    gdbPort?: number;
+    accel?: string;
+    cpu?: string;
+    smp?: number;
   };
   dosbox: {
     driveCPath: string;
     confDir: string;
     capturesDir: string;
+    gameExe?: string;
+    gameIso?: string;
+    dosboxBin?: string;
+    output?: string;
   };
 }
 

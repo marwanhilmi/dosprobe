@@ -84,7 +84,7 @@ function QemuForm({ config, onChange }: { config: QemuLaunchConfig; onChange: (c
         <input className={inputClass} value={config.serialLogPath ?? ''} onChange={(e) => set('serialLogPath', e.target.value || undefined)} placeholder="/path/to/serial.log" />
       </Field>
       <Field label="Audio">
-        <input type="checkbox" checked={config.audio ?? false} onChange={(e) => set('audio', e.target.checked)} className="accent-accent-blue" />
+        <input type="checkbox" checked={config.audio ?? true} onChange={(e) => set('audio', e.target.checked)} className="accent-accent-blue" />
       </Field>
     </div>
   );
@@ -147,9 +147,8 @@ const DEFAULT_QEMU: QemuLaunchConfig = {
   type: 'qemu',
   mode: 'interactive',
   diskImage: '',
-  ram: 64,
-  gdbPort: 1234,
-  display: 'cocoa',
+  audio: true,
+  vncPort: 5900,
 };
 
 const DEFAULT_DOSBOX: DosboxLaunchConfig = {
@@ -178,11 +177,23 @@ export function LaunchDialog({ open, onClose, backendType }: LaunchDialogProps) 
           ...prev,
           diskImage: prev.diskImage || defaults.qemu.diskImage,
           sharedIso: prev.sharedIso || defaults.qemu.sharedIso,
+          gameIso: prev.gameIso || defaults.qemu.gameIso,
           qmpSocketPath: prev.qmpSocketPath || defaults.qemu.qmpSocketPath,
+          ram: prev.ram ?? defaults.qemu.ram,
+          display: prev.display ?? defaults.qemu.display,
+          audio: prev.audio ?? defaults.qemu.audio ?? true,
+          gdbPort: prev.gdbPort ?? defaults.qemu.gdbPort,
+          accel: prev.accel || defaults.qemu.accel,
+          cpu: prev.cpu || defaults.qemu.cpu,
+          smp: prev.smp ?? defaults.qemu.smp,
         }));
         setDosboxConfig((prev) => ({
           ...prev,
           driveCPath: prev.driveCPath || defaults.dosbox.driveCPath,
+          gameExe: prev.gameExe || defaults.dosbox.gameExe,
+          gameIso: prev.gameIso || defaults.dosbox.gameIso,
+          dosboxBin: prev.dosboxBin || defaults.dosbox.dosboxBin,
+          output: prev.output || defaults.dosbox.output,
         }));
       })
       .catch(() => { /* server may not have defaults configured */ });

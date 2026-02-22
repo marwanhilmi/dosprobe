@@ -12,11 +12,33 @@ interface Watch {
   timer: ReturnType<typeof setInterval>;
   lastHash: string | null;
   inFlight: boolean;
+  ws: WebSocket;
 }
 
 const watches: Map<string, Watch> = new Map();
+const clientWatchIds: Map<WebSocket, Set<string>> = new Map();
 const MIN_INTERVAL_MS = 200;
 let watchesSuspended = false;
+
+function addWatchToClient(ws: WebSocket, id: string): void {
+  let ids = clientWatchIds.get(ws);
+  if (!ids) {
+    ids = new Set();
+    clientWatchIds.set(ws, ids);
+  }
+  ids.add(id);
+}
+
+function removeWatchFromClient(ws: WebSocket, id: string): void {
+  const ids = clientWatchIds.get(ws);
+  if (!ids) {
+    return;
+  }
+  ids.delete(id);
+  if (ids.size === 0) {
+    clientWatchIds.delete(ws);
+  }
+}
 
 export function startMemoryWatch(
   backend: Backend,
@@ -74,21 +96,36 @@ export function startMemoryWatch(
     timer,
     lastHash: null,
     inFlight: false,
+    ws,
   });
+  addWatchToClient(ws, id);
 }
 
 export function stopMemoryWatch(id: string): void {
   const watch = watches.get(id);
   if (watch) {
     clearInterval(watch.timer);
+    removeWatchFromClient(watch.ws, id);
     watches.delete(id);
   }
 }
 
-export function stopAllWatches(): void {
-  for (const [id] of watches) {
+export function stopWatchesForClient(ws: WebSocket): void {
+  const ids = clientWatchIds.get(ws);
+  if (!ids) {
+    return;
+  }
+  for (const id of [...ids]) {
     stopMemoryWatch(id);
   }
+  clientWatchIds.delete(ws);
+}
+
+export function stopAllWatches(): void {
+  for (const id of [...watches.keys()]) {
+    stopMemoryWatch(id);
+  }
+  clientWatchIds.clear();
 }
 
 export function suspendAllWatches(): void {

@@ -1,57 +1,86 @@
 import { WebSocketServer, type WebSocket } from 'ws';
-import type { Server } from 'node:http';
 import type { Backend } from '@dosprobe/core';
 import { parseAddress } from '@dosprobe/core';
 import { ChannelManager } from './channels.ts';
-import type { ClientMessage, Channel } from './protocol.ts';
+import type { ClientMessage, Channel, ServerMessage } from './protocol.ts';
 import { CHANNELS } from './protocol.ts';
 import { handleExecPause, handleExecResume, handleExecStep } from './handlers/debug.ts';
 import {
   startMemoryWatch,
   stopMemoryWatch,
   stopAllWatches,
+  stopWatchesForClient,
   suspendAllWatches,
   resumeAllWatches,
 } from './handlers/memory-watch.ts';
+import type { BackendHolder } from '../app.ts';
+
+type StatusChangedMessage = Extract<ServerMessage, { type: 'status:changed' }>;
+
+function createStatusChangedMessage(backend: Backend | null): StatusChangedMessage {
+  const backendInfo = backend ? backend.status() : null;
+  return {
+    type: 'status:changed',
+    status: backendInfo?.status ?? 'disconnected',
+    backend: backendInfo,
+    timestamp: Date.now(),
+  };
+}
 
 export function attachWebSocket(
-  server: Server,
   getBackend: () => Backend | null,
+  backendHolder?: BackendHolder,
 ): WebSocketServer {
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  const wss = new WebSocketServer({ noServer: true });
   const channels = new ChannelManager();
   let watchedBackend: Backend | null = null;
+  let onStatusChanged: (() => void) | null = null;
   let onSnapshotLoading: (() => void) | null = null;
   let onSnapshotLoaded: (() => void) | null = null;
   let onSnapshotLoadFailed: (() => void) | null = null;
 
-  const ensureSnapshotHooks = (): void => {
+  const detachBackendHooks = (): void => {
+    if (!watchedBackend) {
+      return;
+    }
+    if (onStatusChanged) {
+      watchedBackend.off('status', onStatusChanged);
+    }
+    if (onSnapshotLoading) {
+      watchedBackend.off('snapshot:loading', onSnapshotLoading);
+    }
+    if (onSnapshotLoaded) {
+      watchedBackend.off('snapshot:loaded', onSnapshotLoaded);
+    }
+    if (onSnapshotLoadFailed) {
+      watchedBackend.off('snapshot:load-failed', onSnapshotLoadFailed);
+    }
+  };
+
+  const ensureBackendHooks = (): void => {
     const backend = getBackend();
     if (backend === watchedBackend) {
       return;
     }
 
-    if (watchedBackend) {
-      if (onSnapshotLoading) {
-        watchedBackend.off('snapshot:loading', onSnapshotLoading);
-      }
-      if (onSnapshotLoaded) {
-        watchedBackend.off('snapshot:loaded', onSnapshotLoaded);
-      }
-      if (onSnapshotLoadFailed) {
-        watchedBackend.off('snapshot:load-failed', onSnapshotLoadFailed);
-      }
-    }
+    detachBackendHooks();
 
     watchedBackend = backend;
+    onStatusChanged = null;
     onSnapshotLoading = null;
     onSnapshotLoaded = null;
     onSnapshotLoadFailed = null;
+
+    channels.broadcast('status', createStatusChangedMessage(watchedBackend));
 
     if (!watchedBackend) {
       return;
     }
 
+    const statusBackend = watchedBackend;
+    onStatusChanged = () => {
+      channels.broadcast('status', createStatusChangedMessage(statusBackend));
+    };
     onSnapshotLoading = () => {
       suspendAllWatches();
     };
@@ -62,16 +91,29 @@ export function attachWebSocket(
       resumeAllWatches(true);
     };
 
+    watchedBackend.on('status', onStatusChanged);
     watchedBackend.on('snapshot:loading', onSnapshotLoading);
     watchedBackend.on('snapshot:loaded', onSnapshotLoaded);
     watchedBackend.on('snapshot:load-failed', onSnapshotLoadFailed);
   };
 
-  ensureSnapshotHooks();
+  ensureBackendHooks();
+
+  const handleBackendChange = () => {
+    stopAllWatches();
+    ensureBackendHooks();
+  };
+
+  if (backendHolder) {
+    backendHolder.on('backendChange', handleBackendChange);
+  }
 
   wss.on('connection', (ws: WebSocket) => {
+    ensureBackendHooks();
+    ws.send(JSON.stringify(createStatusChangedMessage(getBackend())));
+
     ws.on('message', async (raw) => {
-      ensureSnapshotHooks();
+      ensureBackendHooks();
       let msg: ClientMessage;
       try {
         msg = JSON.parse(raw.toString()) as ClientMessage;
@@ -86,7 +128,11 @@ export function attachWebSocket(
         switch (msg.type) {
           case 'subscribe':
             if (CHANNELS.includes(msg.channel as Channel)) {
-              channels.subscribe(ws, msg.channel as Channel);
+              const channel = msg.channel as Channel;
+              channels.subscribe(ws, channel);
+              if (channel === 'status') {
+                ws.send(JSON.stringify(createStatusChangedMessage(getBackend())));
+              }
             }
             break;
 
@@ -174,23 +220,17 @@ export function attachWebSocket(
     });
 
     ws.on('close', () => {
+      stopWatchesForClient(ws);
       channels.removeClient(ws);
     });
   });
 
   // Clean up on server close
   wss.on('close', () => {
-    if (watchedBackend) {
-      if (onSnapshotLoading) {
-        watchedBackend.off('snapshot:loading', onSnapshotLoading);
-      }
-      if (onSnapshotLoaded) {
-        watchedBackend.off('snapshot:loaded', onSnapshotLoaded);
-      }
-      if (onSnapshotLoadFailed) {
-        watchedBackend.off('snapshot:load-failed', onSnapshotLoadFailed);
-      }
+    if (backendHolder) {
+      backendHolder.off('backendChange', handleBackendChange);
     }
+    detachBackendHooks();
     stopAllWatches();
   });
 

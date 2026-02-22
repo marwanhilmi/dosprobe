@@ -13,6 +13,7 @@ import { captureRoutes } from './routes/capture.ts';
 import { goldenRoutes } from './routes/golden.ts';
 import { stateRoutes } from './routes/state.ts';
 import type { Backend } from '@dosprobe/core';
+import { EventEmitter } from 'node:events';
 
 export interface ServerPaths {
   capturesDir: string;
@@ -24,13 +25,25 @@ export interface LaunchDefaults {
   qemu: {
     diskImage: string;
     sharedIso: string;
+    gameIso?: string;
     qmpSocketPath: string;
     capturesDir: string;
+    ram?: number;
+    display?: 'cocoa' | 'none';
+    audio?: boolean;
+    gdbPort?: number;
+    accel?: string;
+    cpu?: string;
+    smp?: number;
   };
   dosbox: {
     driveCPath: string;
     confDir: string;
     capturesDir: string;
+    gameExe?: string;
+    gameIso?: string;
+    dosboxBin?: string;
+    output?: string;
   };
 }
 
@@ -40,9 +53,25 @@ export type BackendFactory = (type: 'qemu' | 'dosbox') => Promise<Backend>;
  * Mutable holder for the active backend. Shared between the Hono app
  * (via context middleware) and the serve command (WebSocket getter).
  */
-export interface BackendHolder {
+export interface BackendHolder extends EventEmitter {
   backend: Backend | null;
   setBackend(b: Backend | null): void;
+  on(event: 'backendChange', listener: (backend: Backend | null) => void): this;
+  off(event: 'backendChange', listener: (backend: Backend | null) => void): this;
+}
+
+class DefaultBackendHolder extends EventEmitter implements BackendHolder {
+  backend: Backend | null;
+
+  constructor(initialBackend: Backend | null) {
+    super();
+    this.backend = initialBackend;
+  }
+
+  setBackend(b: Backend | null) {
+    this.backend = b;
+    this.emit('backendChange', b);
+  }
 }
 
 export type AppContext = {
@@ -67,10 +96,7 @@ export function createApp(
 
   const resolvedPaths: ServerPaths = paths ?? { capturesDir: './captures', goldenDir: './golden' };
 
-  const holder: BackendHolder = {
-    backend: initialBackend ?? null,
-    setBackend(b) { this.backend = b; },
-  };
+  const holder = new DefaultBackendHolder(initialBackend ?? null);
 
   // Inject backend and paths into context
   app.use('/api/*', async (c, next) => {

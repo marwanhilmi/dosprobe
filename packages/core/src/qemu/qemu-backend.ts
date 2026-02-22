@@ -29,6 +29,7 @@ export class QemuBackend extends Backend {
   private currentStatus: BackendStatus = 'disconnected';
   private breakpoints: Map<string, { address: number; bp: Breakpoint }> = new Map();
   private capturesDir: string;
+  private vncPort: number | undefined;
   private operationQueue: Promise<void> = Promise.resolve();
 
   constructor(capturesDir: string) {
@@ -41,6 +42,7 @@ export class QemuBackend extends Backend {
       type: 'qemu',
       status: this.currentStatus,
       pid: this.launcher?.getPid(),
+      vncPort: this.vncPort,
       connections: {
         qmp: this.qmp !== null,
         gdb: this.gdb !== null,
@@ -53,8 +55,10 @@ export class QemuBackend extends Backend {
     const qemuConfig = config as QemuLaunchConfig;
 
     this.currentStatus = 'launching';
+    this.emit('status', this.currentStatus);
     this.launcher = new QemuLauncher();
     await this.launcher.launch(qemuConfig);
+    this.vncPort = qemuConfig.vncPort;
 
     // Connect QMP — retry until the socket is ready
     if (qemuConfig.qmpSocketPath) {
@@ -75,6 +79,8 @@ export class QemuBackend extends Backend {
       },
       'GDB',
     );
+
+    await this.ensureRunningAfterLaunch();
 
     this.currentStatus = 'running';
     this.emit('status', this.currentStatus);
@@ -101,7 +107,7 @@ export class QemuBackend extends Backend {
     await this.qmp.connect();
     this.gdb = new GdbClient(gdbHost, gdbPort);
     await this.gdb.connect();
-    this.currentStatus = 'running';
+    this.currentStatus = await this.readRunStatusFromQmp();
     this.emit('status', this.currentStatus);
   }
 
@@ -115,6 +121,7 @@ export class QemuBackend extends Backend {
       this.gdb.close();
       this.gdb = null;
     }
+    this.vncPort = undefined;
     this.currentStatus = 'disconnected';
     this.emit('status', this.currentStatus);
   }
@@ -283,6 +290,33 @@ export class QemuBackend extends Backend {
 
   getQmp(): QmpClient | null { return this.qmp; }
   getGdb(): GdbClient | null { return this.gdb; }
+
+  private async ensureRunningAfterLaunch(): Promise<void> {
+    const runState = await this.readRunStatusFromQmp();
+    if (runState === 'paused') {
+      this.requireQmp();
+      await this.qmp!.execute('cont');
+    }
+  }
+
+  private async readRunStatusFromQmp(): Promise<BackendStatus> {
+    if (!this.qmp) {
+      return 'running';
+    }
+    try {
+      const response = await this.qmp.execute('query-status');
+      const result = response['return'];
+      if (typeof result === 'object' && result !== null) {
+        const qmpStatus = (result as Record<string, unknown>)['status'];
+        if (qmpStatus === 'paused' || qmpStatus === 'prelaunch') {
+          return 'paused';
+        }
+      }
+    } catch {
+      // Keep optimistic running status if query-status is unavailable.
+    }
+    return 'running';
+  }
 
   private requireQmp(): void {
     if (!this.qmp) throw new Error('QMP not connected');

@@ -1,3 +1,5 @@
+import type { BackendInfo, BackendStatus } from '@dosprobe/core';
+
 // Client -> Server messages
 export type ClientMessage =
   | { type: 'subscribe'; channel: string }
@@ -15,7 +17,7 @@ export type ClientMessage =
 
 // Server -> Client messages
 export type ServerMessage =
-  | { type: 'status:changed'; status: string; timestamp: number }
+  | { type: 'status:changed'; status: BackendStatus; backend: BackendInfo | null; timestamp: number }
   | { type: 'debug:breakpoint-hit'; breakpointId: string; address: string; registers: Record<string, number>; timestamp: number }
   | { type: 'debug:step-complete'; registers: Record<string, number>; timestamp: number }
   | { type: 'memory:update'; id: string; address: string; size: number; sha256: string; timestamp: number }
