@@ -2,11 +2,10 @@ import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync, unlinkSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { CommandModule } from 'yargs';
 import { CONFIG_FILENAME, writeProjectConfig, which, resolveDosboxBinary, resolveDosboxOutput, DosboxConfig } from '@dosprobe/core';
-import { resolvePaths, ensureDirs } from '../resolve-backend.ts';
+import { resolvePaths, ensureDirs, defineCommand } from '../resolve-backend.ts';
 
-export const setupCommand: CommandModule = {
+export const setupCommand = defineCommand({
   command: 'setup <backend>',
   describe: 'Set up emulator environment',
   builder: (yargs) =>
@@ -23,26 +22,25 @@ export const setupCommand: CommandModule = {
         default: false,
       }),
   handler: async (argv) => {
-    const backendType = argv['backend'] as string;
-    const force = argv['force'] as boolean;
-    const projectDir = (argv['project'] as string | undefined) ?? process.cwd();
+    const backendType = argv.backend!;
+    const projectDir = argv.project;
     const paths = resolvePaths(projectDir, backendType);
     ensureDirs(paths);
 
     if (backendType === 'qemu') {
-      await setupQemu(paths, projectDir, force);
+      await setupQemu(paths, projectDir, argv.force);
     } else {
-      await setupDosbox(paths, projectDir, force);
+      await setupDosbox(paths, projectDir, argv.force);
     }
 
     // Auto-create dosprobe.json if it doesn't exist
     const configPath = join(projectDir, CONFIG_FILENAME);
     if (!existsSync(configPath)) {
-      writeProjectConfig(projectDir, { backend: backendType as 'qemu' | 'dosbox' });
+      writeProjectConfig(projectDir, { backend: backendType });
       console.log(`\nCreated ${CONFIG_FILENAME} with backend: ${backendType}`);
     }
   },
-};
+});
 
 async function setupQemu(paths: ReturnType<typeof resolvePaths>, _projectDir: string, force: boolean): Promise<void> {
   const FREEDOS_URL = 'https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/distributions/1.4/FD14-FullUSB.zip';

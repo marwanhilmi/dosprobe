@@ -23,3 +23,5 @@ shared/
 # Python venvs (legacy)
 .venv/
 __pycache__/
+
+docs/

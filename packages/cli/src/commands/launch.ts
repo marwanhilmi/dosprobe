@@ -1,10 +1,9 @@
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import type { CommandModule } from 'yargs';
 import { QemuLauncher, DosboxBackend, resolveDosboxBinary, resolveDosboxOutput } from '@dosprobe/core';
-import { resolveBackendType, resolvePaths, ensureDirs, getProjectConfig } from '../resolve-backend.ts';
+import { resolveBackendType, resolvePaths, ensureDirs, getProjectConfig, defineCommand } from '../resolve-backend.ts';
 
-export const launchCommand: CommandModule = {
+export const launchCommand = defineCommand({
   command: 'launch <mode>',
   describe: 'Launch emulator',
   builder: (yargs) =>
@@ -64,10 +63,10 @@ export const launchCommand: CommandModule = {
         type: 'number',
       }),
   handler: async (argv) => {
-    const mode = argv['mode'] as string;
-    const config = getProjectConfig(argv as Record<string, unknown>);
-    const type = resolveBackendType(argv as { backend?: string; project?: string });
-    const projectDir = (argv['project'] as string | undefined) ?? process.cwd();
+    const mode = argv.mode!;
+    const config = getProjectConfig(argv);
+    const type = resolveBackendType(argv);
+    const projectDir = argv.project;
     const paths = resolvePaths(projectDir, type);
     ensureDirs(paths);
 
@@ -78,17 +77,17 @@ export const launchCommand: CommandModule = {
       const qemuMode = mode === 'game'
         ? 'interactive'
         : mode as 'interactive' | 'headless' | 'record' | 'replay';
-      const rrFile = (argv['rrfile'] as string | undefined)
+      const rrFile = argv.rrfile
         ?? ((qemuMode === 'record' || qemuMode === 'replay')
           ? join(paths.capturesDir, 'game_session.rr')
           : undefined);
-      const vncPort = (argv['vnc-port'] as number | undefined)
+      const vncPort = argv['vnc-port']
         ?? (qemuMode === 'headless' ? 5900 : undefined);
-      const serialLogPath = (argv['serial-log'] as string | undefined)
+      const serialLogPath = argv['serial-log']
         ?? (qemuMode === 'headless' ? join(paths.capturesDir, 'serial.log') : undefined);
 
       // Resolve game ISO: explicit --iso flag, config, or auto-detect from isos/ directory
-      let gameIso = (argv['iso'] as string | undefined) ?? config.game?.iso;
+      let gameIso = argv.iso ?? config.game?.iso;
       if (!gameIso) {
         try {
           const isoFiles = readdirSync(paths.isosDir)
@@ -111,17 +110,17 @@ export const launchCommand: CommandModule = {
         diskImage: paths.diskImage,
         sharedIso: paths.sharedIso,
         gameIso,
-        accel: (argv['accel'] as string | undefined) ?? config.qemu?.accel,
-        cpu: (argv['cpu'] as string | undefined) ?? config.qemu?.cpu,
-        smp: (argv['smp'] as number | undefined) ?? config.qemu?.smp,
-        ram: (argv['ram'] as number | undefined) ?? config.qemu?.ram,
+        accel: argv.accel ?? config.qemu?.accel,
+        cpu: argv.cpu ?? config.qemu?.cpu,
+        smp: argv.smp ?? config.qemu?.smp,
+        ram: argv.ram ?? config.qemu?.ram,
         gdbPort: config.qemu?.gdbPort,
         display: config.qemu?.display,
         audio: config.qemu?.audio,
         qmpSocketPath: paths.qmpSocketPath,
         vncPort,
         serialLogPath,
-        snapshot: argv['snapshot'] as string | undefined,
+        snapshot: argv.snapshot,
         recordFile: rrFile,
       });
 
@@ -134,14 +133,14 @@ export const launchCommand: CommandModule = {
       console.log(`QEMU exited (code: ${exitCode})`);
 
     } else {
-      const dosboxBin = resolveDosboxBinary((argv['dosbox-bin'] as string | undefined) ?? config.dosbox?.binary);
+      const dosboxBin = resolveDosboxBinary(argv['dosbox-bin'] ?? config.dosbox?.binary);
       if (!dosboxBin) {
         console.error('DOSBox-X binary not found.');
         console.error('Set --dosbox-bin or DOSBOX_X_BIN, or install with: brew install dosbox-x');
         process.exitCode = 1;
         return;
       }
-      const dosboxOutput = resolveDosboxOutput((argv['renderer'] as string | undefined) ?? config.dosbox?.renderer);
+      const dosboxOutput = resolveDosboxOutput(argv.renderer ?? config.dosbox?.renderer);
 
       const backend = new DosboxBackend({
         capturesDir: paths.capturesDir,
@@ -161,8 +160,8 @@ export const launchCommand: CommandModule = {
         type: 'dosbox',
         mode: dosboxMode,
         driveCPath: paths.driveCPath,
-        gameExe: (argv['exe'] as string | undefined) ?? config.game?.exe,
-        gameIso: (argv['iso'] as string | undefined) ?? config.game?.iso,
+        gameExe: argv.exe ?? config.game?.exe,
+        gameIso: argv.iso ?? config.game?.iso,
         startDebugger: mode === 'debug',
         configPath: existsSync(baseConfigPath) ? baseConfigPath : undefined,
         dosboxBin,
@@ -178,4 +177,4 @@ export const launchCommand: CommandModule = {
       console.log(`  Log: ${join(paths.capturesDir, 'dosbox-x.log')}`);
     }
   },
-};
+});

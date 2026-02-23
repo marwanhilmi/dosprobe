@@ -45,7 +45,7 @@ await yargs(hideBin(process.argv))
     default: false,
   })
   .middleware((argv) => {
-    const projectDir = (argv['project'] as string | undefined) ?? process.cwd();
+    const projectDir = argv.project ?? process.cwd();
     try {
       const config = loadProjectConfig(projectDir);
       (argv as Record<string, unknown>)['_config'] = config;

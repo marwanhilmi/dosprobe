@@ -1,7 +1,7 @@
-import type { CommandModule } from 'yargs';
 import { DebugScript, parseAddress } from '@dosprobe/core';
+import { defineCommand } from '../resolve-backend.ts';
 
-export const debugScriptCommand: CommandModule = {
+export const debugScriptCommand = defineCommand({
   command: 'debug-script',
   describe: 'Generate DOSBox-X debugger command script',
   builder: (yargs) =>
@@ -42,14 +42,14 @@ export const debugScriptCommand: CommandModule = {
     const script = new DebugScript();
 
     // Add breakpoints
-    const bps = (argv['bp'] as string[] | undefined) ?? [];
+    const bps = argv.bp ?? [];
     for (const bp of bps) {
       const addr = parseAddress(bp);
       script.breakpoint(addr.segOff.segment, addr.segOff.offset);
     }
 
     // Add interrupt breakpoints
-    const bpints = (argv['bpint'] as string[] | undefined) ?? [];
+    const bpints = argv.bpint ?? [];
     for (const bpint of bpints) {
       if (bpint.includes(':')) {
         const [intStr, ahStr] = bpint.split(':');
@@ -60,12 +60,12 @@ export const debugScriptCommand: CommandModule = {
     }
 
     // Add continue
-    if (argv['continue']) {
+    if (argv.continue) {
       script.continueExec();
     }
 
     // Add memory dumps
-    const dumps = (argv['dump'] as string[] | undefined) ?? [];
+    const dumps = argv.dump ?? [];
     for (const dump of dumps) {
       const parts = dump.split(',');
       const addr = parseAddress(parts[0]!);
@@ -79,16 +79,15 @@ export const debugScriptCommand: CommandModule = {
     }
 
     // Add show registers
-    if (argv['registers']) {
+    if (argv.registers) {
       script.showRegisters();
     }
 
-    const output = argv['output'] as string | undefined;
-    if (output) {
-      script.write(output);
-      console.log(`Debug script written to ${output}`);
+    if (argv.output) {
+      script.write(argv.output);
+      console.log(`Debug script written to ${argv.output}`);
     } else {
       console.log(script.toString());
     }
   },
-};
+});

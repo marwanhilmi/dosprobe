@@ -2,13 +2,12 @@ import http from 'node:http';
 import { readdirSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import { join } from 'node:path';
-import type { CommandModule } from 'yargs';
 import { QemuBackend, DosboxBackend } from '@dosprobe/core';
 import { createApp, attachWebSocket, createVncProxy, bridgeVnc } from '@dosprobe/server';
 import type { BackendFactory, LaunchDefaults } from '@dosprobe/server';
-import { resolveBackendType, resolvePaths, ensureDirs, getProjectConfig } from '../resolve-backend.ts';
+import { resolveBackendType, resolvePaths, ensureDirs, getProjectConfig, defineCommand } from '../resolve-backend.ts';
 
-export const serveCommand: CommandModule = {
+export const serveCommand = defineCommand({
   command: 'serve',
   describe: 'Start REST + WebSocket API server',
   builder: (yargs) =>
@@ -17,10 +16,10 @@ export const serveCommand: CommandModule = {
       type: 'number',
     }),
   handler: async (argv) => {
-    const config = getProjectConfig(argv as Record<string, unknown>);
-    const port = (argv['port'] as number | undefined) ?? config.server?.port ?? 3000;
-    const type = resolveBackendType(argv as { backend?: string; project?: string });
-    const projectDir = (argv['project'] as string | undefined) ?? process.cwd();
+    const config = getProjectConfig(argv);
+    const port = argv.port ?? config.server?.port ?? 3000;
+    const type = resolveBackendType(argv);
+    const projectDir = argv.project;
     const paths = resolvePaths(projectDir, type);
     ensureDirs(paths);
 
@@ -167,4 +166,4 @@ export const serveCommand: CommandModule = {
       console.log(`VNC proxy available at ws://localhost:${port}/vnc`);
     });
   },
-};
+});

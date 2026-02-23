@@ -7,9 +7,9 @@
   },
   "dependencies": {
     "@dosprobe/core": "workspace:*",
-    "@dosprobe/shared": "workspace:*",
     "@dosprobe/server": "workspace:*",
-    "yargs": "^17"
+    "@dosprobe/shared": "workspace:*",
+    "yargs": "^18.0.0"
   },
   "devDependencies": {
     "@types/yargs": "^17"

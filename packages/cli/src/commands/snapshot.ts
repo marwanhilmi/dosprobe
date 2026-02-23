@@ -1,7 +1,8 @@
 import type { CommandModule } from 'yargs';
 import { resolveBackend } from '../resolve-backend.ts';
+import type { GlobalArgs } from '../resolve-backend.ts';
 
-export const snapshotCommand: CommandModule = {
+export const snapshotCommand: CommandModule<GlobalArgs, GlobalArgs> = {
   command: 'snapshot <action>',
   describe: 'Manage VM snapshots',
   builder: (yargs) =>
@@ -16,8 +17,8 @@ export const snapshotCommand: CommandModule = {
             demandOption: true,
           }),
         async (argv) => {
-          const name = argv['name'] as string;
-          const { backend } = await resolveBackend(argv as { backend?: string; project?: string });
+          const name = argv.name;
+          const { backend } = await resolveBackend(argv);
 
           try {
             const snap = await backend.saveSnapshot(name);
@@ -37,8 +38,8 @@ export const snapshotCommand: CommandModule = {
             demandOption: true,
           }),
         async (argv) => {
-          const name = argv['name'] as string;
-          const { backend } = await resolveBackend(argv as { backend?: string; project?: string });
+          const name = argv.name;
+          const { backend } = await resolveBackend(argv);
 
           try {
             await backend.loadSnapshot(name);
@@ -48,13 +49,12 @@ export const snapshotCommand: CommandModule = {
           }
         },
       )
-      .command('list', 'List snapshots', {}, async (argv) => {
-        const { backend } = await resolveBackend(argv as { backend?: string; project?: string });
+      .command('list', 'List snapshots', (y) => y, async (argv) => {
+        const { backend } = await resolveBackend(argv);
 
         try {
           const snapshots = await backend.listSnapshots();
-          const json = (argv as Record<string, unknown>)['json'] as boolean | undefined;
-          if (json) {
+          if (argv.json) {
             console.log(JSON.stringify(snapshots, null, 2));
           } else if (snapshots.length === 0) {
             console.log('No snapshots found.');

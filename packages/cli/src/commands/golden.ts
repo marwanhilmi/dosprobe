@@ -3,6 +3,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import type { CommandModule } from 'yargs';
 import { compareWithGolden, parseAddress } from '@dosprobe/core';
 import { resolveBackend } from '../resolve-backend.ts';
+import type { GlobalArgs } from '../resolve-backend.ts';
 
 function parseMemoryRanges(specs: string[] | undefined): Array<{ address: ReturnType<typeof parseAddress>; size: number; filename: string }> | undefined {
   if (!specs || specs.length === 0) return undefined;
@@ -31,7 +32,7 @@ function parseMemoryRanges(specs: string[] | undefined): Array<{ address: Return
   });
 }
 
-export const goldenCommand: CommandModule = {
+export const goldenCommand: CommandModule<GlobalArgs, GlobalArgs> = {
   command: 'golden <action>',
   describe: 'Generate or compare golden reference files',
   builder: (yargs) =>
@@ -70,16 +71,16 @@ export const goldenCommand: CommandModule = {
               array: true,
             }),
         async (argv) => {
-          const { backend, paths } = await resolveBackend(argv as { backend?: string; project?: string });
-          const prefix = argv['prefix'] as string;
-          const keysStr = argv['keys'] as string | undefined;
+          const { backend, paths } = await resolveBackend(argv);
+          const prefix = argv.prefix;
+          const keysStr = argv.keys;
           const keys = keysStr ? keysStr.split(/\s+/) : undefined;
-          const memoryRanges = parseMemoryRanges(argv['memory'] as string[] | undefined);
+          const memoryRanges = parseMemoryRanges(argv.memory);
 
           try {
             const result = await backend.capture({
               prefix,
-              snapshot: argv['snapshot'] as string | undefined,
+              snapshot: argv.snapshot,
               keys,
               memoryRanges,
             });
@@ -139,16 +140,16 @@ export const goldenCommand: CommandModule = {
               array: true,
             }),
         async (argv) => {
-          const { backend, paths } = await resolveBackend(argv as { backend?: string; project?: string });
-          const testName = argv['test-name'] as string;
-          const keysStr = argv['keys'] as string | undefined;
+          const { backend, paths } = await resolveBackend(argv);
+          const testName = argv['test-name'];
+          const keysStr = argv.keys;
           const keys = keysStr ? keysStr.split(/\s+/) : undefined;
-          const memoryRanges = parseMemoryRanges(argv['memory'] as string[] | undefined);
+          const memoryRanges = parseMemoryRanges(argv.memory);
 
           try {
             const result = await backend.capture({
               prefix: `_compare_${testName}`,
-              snapshot: argv['snapshot'] as string | undefined,
+              snapshot: argv.snapshot,
               keys,
               memoryRanges,
             });

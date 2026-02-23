@@ -1,5 +1,4 @@
-import type { CommandModule } from 'yargs';
-import { resolveBackend, getProjectConfig } from '../resolve-backend.ts';
+import { resolveBackend, defineCommand } from '../resolve-backend.ts';
 
 function formatRegisters(regs: Record<string, number>): string {
   const lines: string[] = [];
@@ -28,7 +27,7 @@ function formatRegisters(regs: Record<string, number>): string {
   return lines.join('\n');
 }
 
-export const registersCommand: CommandModule = {
+export const registersCommand = defineCommand({
   command: 'registers',
   describe: 'Dump CPU registers',
   builder: (yargs) =>
@@ -47,12 +46,11 @@ export const registersCommand: CommandModule = {
         type: 'number',
       }),
   handler: async (argv) => {
-    const { backend } = await resolveBackend(argv as { backend?: string; project?: string });
+    const { backend } = await resolveBackend(argv);
 
     try {
       const regs = await backend.readRegisters();
-      const json = (argv as Record<string, unknown>)['json'] as boolean | undefined;
-      if (json) {
+      if (argv.json) {
         console.log(JSON.stringify(regs, null, 2));
       } else {
         console.log(formatRegisters(regs as unknown as Record<string, number>));
@@ -61,4 +59,4 @@ export const registersCommand: CommandModule = {
       backend.disconnect();
     }
   },
-};
+});

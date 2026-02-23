@@ -3,8 +3,9 @@ import { existsSync } from 'node:fs';
 import type { CommandModule } from 'yargs';
 import { which } from '@dosprobe/core';
 import { resolvePaths, ensureDirs } from '../resolve-backend.ts';
+import type { GlobalArgs } from '../resolve-backend.ts';
 
-export const isoCommand: CommandModule = {
+export const isoCommand: CommandModule<GlobalArgs, GlobalArgs> = {
   command: 'iso <action>',
   describe: 'Manage shared ISO (QEMU)',
   builder: (yargs) =>
@@ -17,11 +18,11 @@ export const isoCommand: CommandModule = {
           type: 'string',
         }),
       async (argv) => {
-        const projectDir = (argv['project'] as string | undefined) ?? process.cwd();
+        const projectDir = argv.project;
         const paths = resolvePaths(projectDir, 'qemu');
         ensureDirs(paths);
 
-        const sourceDir = (argv['source'] as string | undefined) ?? paths.sharedDir;
+        const sourceDir = argv.source ?? paths.sharedDir;
         if (!existsSync(sourceDir)) {
           console.error(`Source directory not found: ${sourceDir}`);
           process.exitCode = 1;

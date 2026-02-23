@@ -1,7 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import type { CommandModule } from 'yargs';
 import { QemuBackend, parseAddress, which } from '@dosprobe/core';
-import { ensureDirs, resolveBackendType, resolvePaths } from '../resolve-backend.ts';
+import { ensureDirs, resolveBackendType, resolvePaths, defineCommand } from '../resolve-backend.ts';
 
 interface BenchmarkResult {
   name: string;
@@ -119,7 +118,7 @@ function formatOps(opsPerSec: number): string {
   return `${opsPerSec.toFixed(2)} ops/s`;
 }
 
-export const perfCommand: CommandModule = {
+export const perfCommand = defineCommand({
   command: 'perf',
   describe: 'Diagnose QEMU performance characteristics',
   builder: (yargs) =>
@@ -160,14 +159,14 @@ export const perfCommand: CommandModule = {
         default: false,
       }),
   handler: async (argv) => {
-    const backendType = resolveBackendType(argv as { backend?: string; project?: string });
+    const backendType = resolveBackendType(argv);
     if (backendType !== 'qemu') {
       console.error('dosprobe perf currently supports only the QEMU backend.');
       process.exitCode = 1;
       return;
     }
 
-    const projectDir = (argv['project'] as string | undefined) ?? process.cwd();
+    const projectDir = argv.project;
     const paths = resolvePaths(projectDir, 'qemu');
     ensureDirs(paths);
 
@@ -231,13 +230,13 @@ export const perfCommand: CommandModule = {
         }
       }
 
-      if (!(argv['skip-bench'] as boolean)) {
-        const iterations = Math.max(1, Math.floor(argv['iterations'] as number));
-        const memorySize = Math.max(1, Math.floor(argv['memory-size'] as number));
-        const memoryAddress = parseAddress(argv['memory-address'] as string);
-        const includeScreenshot = argv['include-screenshot'] as boolean;
-        const screenshotIterations = Math.max(1, Math.floor(argv['screenshot-iterations'] as number));
-        const shouldPause = argv['pause'] as boolean;
+      if (!argv['skip-bench']) {
+        const iterations = Math.max(1, Math.floor(argv.iterations));
+        const memorySize = Math.max(1, Math.floor(argv['memory-size']));
+        const memoryAddress = parseAddress(argv['memory-address']);
+        const includeScreenshot = argv['include-screenshot'];
+        const screenshotIterations = Math.max(1, Math.floor(argv['screenshot-iterations']));
+        const shouldPause = argv.pause;
 
         if (shouldPause) {
           await backend.pause();
@@ -287,8 +286,7 @@ export const perfCommand: CommandModule = {
       }
     }
 
-    const asJson = (argv as Record<string, unknown>)['json'] as boolean | undefined;
-    if (asJson) {
+    if (argv.json) {
       console.log(JSON.stringify(report, null, 2));
       return;
     }
@@ -335,4 +333,4 @@ export const perfCommand: CommandModule = {
       }
     }
   },
-};
+});

@@ -1,6 +1,5 @@
-import type { CommandModule } from 'yargs';
 import { parseAddress } from '@dosprobe/core';
-import { resolveBackend, getProjectConfig } from '../resolve-backend.ts';
+import { resolveBackend, getProjectConfig, defineCommand } from '../resolve-backend.ts';
 
 function parseMemoryRanges(specs: string[] | undefined): Array<{ address: ReturnType<typeof parseAddress>; size: number; filename: string }> | undefined {
   if (!specs || specs.length === 0) return undefined;
@@ -29,7 +28,7 @@ function parseMemoryRanges(specs: string[] | undefined): Array<{ address: Return
   });
 }
 
-export const captureCommand: CommandModule = {
+export const captureCommand = defineCommand({
   command: 'capture',
   describe: 'Capture game state (framebuffer, memory, registers)',
   builder: (yargs) =>
@@ -77,29 +76,27 @@ export const captureCommand: CommandModule = {
         array: true,
       }),
   handler: async (argv) => {
-    const config = getProjectConfig(argv as Record<string, unknown>);
-    const { backend, paths } = await resolveBackend(argv as { backend?: string; project?: string });
+    const config = getProjectConfig(argv);
+    const { backend, paths } = await resolveBackend(argv);
 
-    const prefix = argv['prefix'] as string;
-    const keysStr = argv['keys'] as string | undefined;
+    const keysStr = argv.keys;
     const keys = keysStr ? keysStr.split(/\s+/) : undefined;
-    const bpStr = argv['breakpoint'] as string | undefined;
+    const bpStr = argv.breakpoint;
     const breakpoint = bpStr ? parseAddress(bpStr) : undefined;
-    const memoryRanges = parseMemoryRanges(argv['memory'] as string[] | undefined);
+    const memoryRanges = parseMemoryRanges(argv.memory);
 
     try {
       const result = await backend.capture({
-        prefix,
-        snapshot: argv['snapshot'] as string | undefined,
+        prefix: argv.prefix,
+        snapshot: argv.snapshot,
         breakpoint,
         keys,
         memoryRanges,
-        waitTime: (argv['wait'] as number | undefined) ?? config.capture?.waitTime ?? 2.0,
-        timeout: (argv['timeout'] as number | undefined) ?? config.capture?.timeout ?? 45,
+        waitTime: argv.wait ?? config.capture?.waitTime ?? 2.0,
+        timeout: argv.timeout ?? config.capture?.timeout ?? 45,
       });
 
-      const json = (argv as Record<string, unknown>)['json'] as boolean | undefined;
-      if (json) {
+      if (argv.json) {
         console.log(JSON.stringify({
           prefix: result.prefix,
           timestamp: result.timestamp,
@@ -109,7 +106,7 @@ export const captureCommand: CommandModule = {
           checksums: Object.fromEntries(result.checksums),
         }, null, 2));
       } else {
-        console.log(`Capture complete: ${prefix}`);
+        console.log(`Capture complete: ${argv.prefix}`);
         console.log(`  Output dir: ${paths.capturesDir}`);
         if (result.framebuffer) {
           console.log(`  Framebuffer: ${result.framebuffer.length} bytes (${result.checksums.get('framebuffer')})`);
@@ -130,4 +127,4 @@ export const captureCommand: CommandModule = {
       backend.disconnect();
     }
   },
-};
+});

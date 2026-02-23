@@ -1,8 +1,7 @@
 import { writeFileSync } from 'node:fs';
-import type { CommandModule } from 'yargs';
-import { resolveBackend } from '../resolve-backend.ts';
+import { resolveBackend, defineCommand } from '../resolve-backend.ts';
 
-export const screenshotCommand: CommandModule = {
+export const screenshotCommand = defineCommand({
   command: 'screenshot',
   describe: 'Take a screenshot',
   builder: (yargs) =>
@@ -13,16 +12,15 @@ export const screenshotCommand: CommandModule = {
       default: 'screenshot.ppm',
     }),
   handler: async (argv) => {
-    const output = argv['output'] as string;
-    const { backend } = await resolveBackend(argv as { backend?: string; project?: string });
+    const { backend } = await resolveBackend(argv);
 
     try {
       const { data, format } = await backend.screenshot();
-      const outPath = output.endsWith(`.${format}`) ? output : output;
+      const outPath = argv.output.endsWith(`.${format}`) ? argv.output : argv.output;
       writeFileSync(outPath, data);
       console.log(`Screenshot saved to ${outPath} (${format}, ${data.length} bytes)`);
     } finally {
       backend.disconnect();
     }
   },
-};
+});

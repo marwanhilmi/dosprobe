@@ -1,10 +1,10 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { CommandModule } from 'yargs';
 import { CONFIG_FILENAME, writeProjectConfig } from '@dosprobe/core';
 import type { ProjectConfig } from '@dosprobe/core';
+import { defineCommand } from '../resolve-backend.ts';
 
-export const initCommand: CommandModule = {
+export const initCommand = defineCommand({
   command: 'init',
   describe: 'Create a dosprobe.json project config',
   builder: (yargs) =>
@@ -21,8 +21,8 @@ export const initCommand: CommandModule = {
         type: 'string',
       }),
   handler: async (argv) => {
-    const projectDir = (argv['project'] as string | undefined) ?? process.cwd();
-    const force = argv['force'] as boolean;
+    const projectDir = argv.project;
+    const force = argv.force;
     const configPath = join(projectDir, CONFIG_FILENAME);
 
     if (existsSync(configPath) && !force) {
@@ -34,9 +34,8 @@ export const initCommand: CommandModule = {
     const config: ProjectConfig = {};
 
     // Backend: explicit flag or auto-detect
-    const backendFlag = argv['backend'] as string | undefined;
-    if (backendFlag) {
-      config.backend = backendFlag as 'qemu' | 'dosbox';
+    if (argv.backend) {
+      config.backend = argv.backend;
     } else {
       const hasQemu = existsSync(join(projectDir, 'data', 'qemu', 'vm'));
       const hasDosbox = existsSync(join(projectDir, 'data', 'dosbox', 'drive_c'));
@@ -59,4 +58,4 @@ export const initCommand: CommandModule = {
     if (config.backend) console.log(`  backend: ${config.backend}`);
     if (config.game?.iso) console.log(`  game.iso: ${config.game.iso}`);
   },
-};
+});

@@ -2,6 +2,23 @@ import { join } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
 import { QemuBackend, DosboxBackend } from '@dosprobe/core';
 import type { Backend, ProjectConfig } from '@dosprobe/core';
+import type { Argv, ArgumentsCamelCase, CommandModule } from 'yargs';
+
+export interface GlobalArgs {
+  backend: 'qemu' | 'dosbox' | undefined;
+  project: string;
+  verbose: boolean;
+  json: boolean;
+}
+
+export function defineCommand<U>(opts: {
+  command: string | readonly string[];
+  describe: string | false;
+  builder: (yargs: Argv<GlobalArgs>) => Argv<U>;
+  handler: (args: ArgumentsCamelCase<U>) => void | Promise<void>;
+}): CommandModule<GlobalArgs, U> {
+  return opts;
+}
 
 export interface ResolvedPaths {
   projectDir: string;
@@ -60,8 +77,8 @@ export function getProjectConfig(argv: Record<string, unknown>): ProjectConfig {
   return (argv['_config'] as ProjectConfig | undefined) ?? {};
 }
 
-export function resolveBackendType(argv: { backend?: string; project?: string }): 'qemu' | 'dosbox' {
-  if (argv.backend) return argv.backend as 'qemu' | 'dosbox';
+export function resolveBackendType(argv: Pick<GlobalArgs, 'backend' | 'project'>): 'qemu' | 'dosbox' {
+  if (argv.backend) return argv.backend;
 
   // Check project config
   const config = getProjectConfig(argv as Record<string, unknown>);
@@ -91,7 +108,7 @@ export async function createDosboxBackend(paths: ResolvedPaths): Promise<Backend
   });
 }
 
-export async function resolveBackend(argv: { backend?: string; project?: string }): Promise<{ backend: Backend; type: 'qemu' | 'dosbox'; paths: ResolvedPaths }> {
+export async function resolveBackend(argv: Pick<GlobalArgs, 'backend' | 'project'>): Promise<{ backend: Backend; type: 'qemu' | 'dosbox'; paths: ResolvedPaths }> {
   const type = resolveBackendType(argv);
   const projectDir = argv.project ?? process.cwd();
   const paths = resolvePaths(projectDir, type);

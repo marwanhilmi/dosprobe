@@ -1,21 +1,20 @@
-import { join } from 'node:path';
 import type { CommandModule } from 'yargs';
 import { StateManager } from '@dosprobe/core';
 import { resolvePaths } from '../resolve-backend.ts';
+import type { GlobalArgs } from '../resolve-backend.ts';
 
-export const stateCommand: CommandModule = {
+export const stateCommand: CommandModule<GlobalArgs, GlobalArgs> = {
   command: 'state <action>',
   describe: 'Manage DOSBox-X save states',
   builder: (yargs) =>
     yargs
-      .command('list', 'List save states', {}, async (argv) => {
-        const projectDir = (argv['project'] as string | undefined) ?? process.cwd();
+      .command('list', 'List save states', (y) => y, async (argv) => {
+        const projectDir = argv.project;
         const paths = resolvePaths(projectDir, 'dosbox');
         const mgr = new StateManager(paths.statesDir);
         const states = mgr.listStates();
 
-        const json = (argv as Record<string, unknown>)['json'] as boolean | undefined;
-        if (json) {
+        if (argv.json) {
           console.log(JSON.stringify(states, null, 2));
         } else if (states.length === 0) {
           console.log('No DOSBox-X save states found.');
@@ -36,10 +35,10 @@ export const stateCommand: CommandModule = {
             demandOption: true,
           }),
         async (argv) => {
-          const projectDir = (argv['project'] as string | undefined) ?? process.cwd();
+          const projectDir = argv.project;
           const paths = resolvePaths(projectDir, 'dosbox');
           const mgr = new StateManager(paths.statesDir);
-          const name = argv['name'] as string;
+          const name = argv.name;
 
           if (!mgr.stateExists(name)) {
             console.error(`State "${name}" not found in ${paths.statesDir}`);
@@ -50,8 +49,7 @@ export const stateCommand: CommandModule = {
           const states = mgr.listStates();
           const state = states.find((s) => s.name === name);
           if (state) {
-            const json = (argv as Record<string, unknown>)['json'] as boolean | undefined;
-            if (json) {
+            if (argv.json) {
               console.log(JSON.stringify(state, null, 2));
             } else {
               console.log(`Name:     ${state.name}`);
