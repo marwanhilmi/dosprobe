@@ -4,16 +4,23 @@
   "type": "module",
   "scripts": {
     "build:ui": "pnpm --filter ui build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo -b",
     "test": "vitest",
-    "lint": "eslint packages/"
+    "lint": "oxlint --type-aware --type-check",
+    "fmt": "oxfmt --write",
+    "setup:agents": "dotagents install"
   },
   "dependencies": {
     "@dosprobe/cli": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.3.0",
-    "typescript": "^5.8",
-    "vitest": "^3"
+    "@sentry/dotagents": "^1.2.0",
+    "@typescript/native-preview": "7.0.0-dev.20260310.1",
+    "oxfmt": "^0.37.0",
+    "oxlint": "^1.52.0",
+    "oxlint-tsgolint": "^0.16.0",
+    "typescript": "^6.0.1-rc",
+    "vitest": "^4"
   }
 }
