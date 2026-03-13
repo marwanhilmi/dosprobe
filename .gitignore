@@ -7,9 +7,6 @@ node_modules/
 # Runtime data
 data/
 
-# Legacy shared directory (replaced by data/qemu/shared/)
-shared/
-
 # TypeScript build output (we use native TS, but just in case)
 *.tsbuildinfo
 

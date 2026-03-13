@@ -1,27 +1,145 @@
 import http from 'node:http';
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { Readable } from 'node:stream';
-import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createServer, type ViteDevServer } from 'vite';
 import { QemuBackend, DosboxBackend } from '@dosprobe/core';
 import { createApp, attachWebSocket, createVncProxy, bridgeVnc } from '@dosprobe/server';
 import type { BackendFactory, LaunchDefaults } from '@dosprobe/server';
 import { resolveBackendType, resolvePaths, ensureDirs, getProjectConfig, defineCommand } from '../resolve-backend.ts';
 
+type DosprobeApp = ReturnType<typeof createApp>['app'];
+
+function isApiRequest(url: string | undefined): boolean {
+  if (!url) return false;
+  return url === '/api' || url.startsWith('/api/') || url.startsWith('/api?');
+}
+
+function resolveUiPaths() {
+  const commandsDir = dirname(fileURLToPath(import.meta.url));
+  const uiRoot = join(commandsDir, '..', '..', '..', 'ui');
+  const uiDistAbsolute = join(uiRoot, 'dist');
+
+  return {
+    uiRoot,
+    uiDistAbsolute,
+    uiDistRelative: relative(process.cwd(), uiDistAbsolute) || '.',
+  };
+}
+
+async function forwardToApp(
+  app: DosprobeApp,
+  port: number,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) {
+  try {
+    const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+    const init: RequestInit = {
+      method: req.method,
+      headers: req.headers as HeadersInit,
+    };
+
+    if (hasBody) {
+      // Pipe the incoming body as a web ReadableStream.
+      (init as Record<string, unknown>).body = Readable.toWeb(req);
+      (init as Record<string, unknown>).duplex = 'half';
+    }
+
+    const response = await app.fetch(
+      new Request(`http://localhost:${port}${req.url ?? '/'}`, init),
+    );
+
+    res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
+
+    if (response.body) {
+      const reader = response.body.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(value);
+      }
+    }
+
+    res.end();
+  } catch (err) {
+    console.error(err);
+
+    if (!res.headersSent) {
+      res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' });
+    }
+    if (!res.writableEnded) {
+      res.end(err instanceof Error ? err.message : String(err));
+    }
+  }
+}
+
+async function forwardToVite(
+  vite: ViteDevServer,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) {
+  try {
+    await new Promise<void>((resolve, reject) => {
+      vite.middlewares(req, res, (err: unknown) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (!res.writableEnded) {
+          if (!res.headersSent) {
+            res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+          }
+          res.end('Not Found');
+        }
+
+        resolve();
+      });
+    });
+  } catch (err) {
+    if (err instanceof Error) {
+      vite.ssrFixStacktrace(err);
+    }
+    console.error(err);
+
+    if (!res.headersSent) {
+      res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' });
+    }
+    if (!res.writableEnded) {
+      res.end(err instanceof Error ? (err.stack ?? err.message) : String(err));
+    }
+  }
+}
+
 export const serveCommand = defineCommand({
   command: 'serve',
   describe: 'Start REST + WebSocket API server',
   builder: (yargs) =>
-    yargs.option('port', {
-      describe: 'Port to listen on (default: 3000)',
-      type: 'number',
-    }),
+    yargs
+      .option('port', {
+        describe: 'Port to listen on (default: 3000)',
+        type: 'number',
+      })
+      .option('dev', {
+        describe: 'Serve the UI via Vite middleware with HMR enabled',
+        type: 'boolean',
+        default: false,
+      }),
   handler: async (argv) => {
     const config = getProjectConfig(argv);
     const port = argv.port ?? config.server?.port ?? 3000;
+    const devMode = argv.dev ?? false;
     const type = resolveBackendType(argv);
     const projectDir = argv.project;
     const paths = resolvePaths(projectDir, type);
+    const { uiRoot, uiDistAbsolute, uiDistRelative } = resolveUiPaths();
     ensureDirs(paths);
+
+    if (!devMode && !existsSync(uiDistAbsolute)) {
+      throw new Error(`Prebuilt UI not found at ${uiDistAbsolute}. Run "pnpm build:ui" first.`);
+    }
 
     // Factory for creating backends on demand (used by /api/backend/select).
     // Creates a backend object in disconnected state — launch() starts the process.
@@ -107,33 +225,32 @@ export const serveCommand = defineCommand({
     const { app, holder } = createApp(initialBackend, {
       capturesDir: paths.capturesDir,
       goldenDir: paths.goldenDir,
-    }, backendFactory, launchDefaults);
+    }, backendFactory, launchDefaults, devMode ? undefined : uiDistRelative);
 
-    const server = http.createServer(async (req, res) => {
-      const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
-      const init: RequestInit = {
-        method: req.method,
-        headers: req.headers as HeadersInit,
-      };
-      if (hasBody) {
-        // Pipe the incoming body as a web ReadableStream
-        (init as Record<string, unknown>).body = Readable.toWeb(req);
-        (init as Record<string, unknown>).duplex = 'half';
+    let vite: ViteDevServer | null = null;
+    const server = http.createServer((req, res) => {
+      if (devMode && vite && !isApiRequest(req.url)) {
+        void forwardToVite(vite, req, res);
+        return;
       }
-      const response = await app.fetch(
-        new Request(`http://localhost:${port}${req.url}`, init),
-      );
-      res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
-      if (response.body) {
-        const reader = response.body.getReader();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          res.write(value);
-        }
-      }
-      res.end();
+
+      void forwardToApp(app, port, req, res);
     });
+
+    if (devMode) {
+      vite = await createServer({
+        root: uiRoot,
+        appType: 'spa',
+        server: {
+          middlewareMode: true,
+          hmr: { server },
+        },
+      });
+
+      server.on('close', () => {
+        void vite?.close();
+      });
+    }
 
     const wss = attachWebSocket(() => holder.backend, holder);
     const vncWss = createVncProxy();
@@ -156,12 +273,19 @@ export const serveCommand = defineCommand({
           bridgeVnc(ws, backend);
         });
       } else {
-        socket.destroy();
+        if (!devMode) {
+          socket.destroy();
+        }
       }
     });
 
     server.listen(port, () => {
       console.log(`dosprobe server running on http://localhost:${port}`);
+      if (devMode) {
+        console.log(`UI served via Vite middleware from ${uiRoot}`);
+      } else {
+        console.log(`Serving prebuilt UI from ${uiDistAbsolute}`);
+      }
       console.log(`WebSocket available at ws://localhost:${port}/ws`);
       console.log(`VNC proxy available at ws://localhost:${port}/vnc`);
     });

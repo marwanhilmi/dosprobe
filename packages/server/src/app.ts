@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { backendRoutes } from './routes/backend.ts';
 import { launchRoutes } from './routes/launch.ts';
 import { memoryRoutes } from './routes/memory.ts';
@@ -14,6 +15,7 @@ import { goldenRoutes } from './routes/golden.ts';
 import { stateRoutes } from './routes/state.ts';
 import type { Backend } from '@dosprobe/core';
 import { EventEmitter } from 'node:events';
+import { extname } from 'node:path';
 
 export interface ServerPaths {
   capturesDir: string;
@@ -84,11 +86,19 @@ export type AppContext = {
   };
 };
 
+function shouldServeSpaFallback(pathname: string): boolean {
+  return !pathname.startsWith('/api')
+    && !pathname.startsWith('/ws')
+    && !pathname.startsWith('/vnc')
+    && extname(pathname) === '';
+}
+
 export function createApp(
   initialBackend?: Backend | null,
   paths?: ServerPaths,
   backendFactory?: BackendFactory,
   launchDefaults?: LaunchDefaults,
+  uiDistDir?: string,
 ) {
   const app = new Hono<AppContext>();
 
@@ -130,6 +140,27 @@ export function createApp(
   app.route('/api', captureRoutes);
   app.route('/api', goldenRoutes);
   app.route('/api', stateRoutes);
+
+  if (uiDistDir) {
+    const serveUiAssets = serveStatic({ root: uiDistDir });
+    const serveUiIndex = serveStatic({ root: uiDistDir, path: 'index.html' });
+
+    app.use('*', async (c, next) => {
+      if (c.req.method !== 'GET' && c.req.method !== 'HEAD') {
+        return next();
+      }
+
+      const assetResponse = await serveUiAssets(c, async () => {});
+      if (assetResponse) {
+        return assetResponse;
+      }
+      if (!shouldServeSpaFallback(c.req.path)) {
+        return next();
+      }
+
+      return serveUiIndex(c, next);
+    });
+  }
 
   return { app, holder };
 }
