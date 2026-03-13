@@ -1,10 +1,10 @@
 {
   "name": "@dosprobe/cli",
   "version": "0.0.1",
-  "type": "module",
   "bin": {
     "dosprobe": "./src/index.ts"
   },
+  "type": "module",
   "dependencies": {
     "@dosprobe/core": "workspace:*",
     "@dosprobe/server": "workspace:*",

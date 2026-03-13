@@ -1,13 +1,13 @@
-import { useState, useMemo } from 'react';
-import { VncScreen } from 'react-vnc';
-import { useBackend } from '../../contexts/BackendContext';
-import { useScreenshot } from '../../hooks/useScreenshot';
-import { Panel } from '../layout/Panel';
+import { useState, useMemo } from "react"
+import { VncScreen } from "react-vnc"
+import { useBackend } from "../../contexts/BackendContext"
+import { useScreenshot } from "../../hooks/useScreenshot"
+import { Panel } from "../layout/Panel"
 
-type DisplayMode = 'vnc' | 'screenshot';
+type DisplayMode = "vnc" | "screenshot"
 
 function ScreenshotView() {
-  const { imageUrl, loading, error, capture, autoRefresh, setAutoRefresh } = useScreenshot();
+  const { imageUrl, loading, error, capture, autoRefresh, setAutoRefresh } = useScreenshot()
 
   return (
     <>
@@ -26,7 +26,7 @@ function ScreenshotView() {
           disabled={loading}
           className="px-2 py-0.5 text-xs bg-bg-tertiary border border-border-default rounded hover:border-accent-blue disabled:opacity-50"
         >
-          {loading ? '...' : 'Capture'}
+          {loading ? "..." : "Capture"}
         </button>
       </div>
       {error && <div className="text-accent-red text-xs mb-2">{error}</div>}
@@ -36,7 +36,7 @@ function ScreenshotView() {
             src={imageUrl}
             alt="DOS screenshot"
             className="max-w-full max-h-full"
-            style={{ imageRendering: 'pixelated' }}
+            style={{ imageRendering: "pixelated" }}
           />
         </div>
       ) : (
@@ -45,41 +45,41 @@ function ScreenshotView() {
         </div>
       )}
     </>
-  );
+  )
 }
 
 export function DisplayPanel() {
-  const { backend, isRunning, isPaused } = useBackend();
-  const backendActive = isRunning || isPaused;
-  const vncAvailable = backendActive && !!backend?.vncPort;
-  const [mode, setMode] = useState<DisplayMode>('vnc');
-  const activeMode = vncAvailable ? mode : 'screenshot';
+  const { backend, isRunning, isPaused } = useBackend()
+  const backendActive = isRunning || isPaused
+  const vncAvailable = backendActive && !!backend?.vncPort
+  const [mode, setMode] = useState<DisplayMode>("vnc")
+  const activeMode = vncAvailable ? mode : "screenshot"
 
   const vncUrl = useMemo(() => {
-    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    return `${proto}://${window.location.host}/vnc`;
-  }, []);
+    const proto = window.location.protocol === "https:" ? "wss" : "ws"
+    return `${proto}://${window.location.host}/vnc`
+  }, [])
 
   const toolbar = (
     <div className="flex items-center gap-1">
       {vncAvailable && (
         <>
           <button
-            onClick={() => setMode('vnc')}
+            onClick={() => setMode("vnc")}
             className={`px-2 py-0.5 text-xs rounded border ${
-              activeMode === 'vnc'
-                ? 'bg-accent-blue/20 border-accent-blue/50 text-accent-blue'
-                : 'bg-bg-tertiary border-border-default text-text-secondary hover:border-text-muted'
+              activeMode === "vnc"
+                ? "bg-accent-blue/20 border-accent-blue/50 text-accent-blue"
+                : "bg-bg-tertiary border-border-default text-text-secondary hover:border-text-muted"
             }`}
           >
             VNC
           </button>
           <button
-            onClick={() => setMode('screenshot')}
+            onClick={() => setMode("screenshot")}
             className={`px-2 py-0.5 text-xs rounded border ${
-              activeMode === 'screenshot'
-                ? 'bg-accent-blue/20 border-accent-blue/50 text-accent-blue'
-                : 'bg-bg-tertiary border-border-default text-text-secondary hover:border-text-muted'
+              activeMode === "screenshot"
+                ? "bg-accent-blue/20 border-accent-blue/50 text-accent-blue"
+                : "bg-bg-tertiary border-border-default text-text-secondary hover:border-text-muted"
             }`}
           >
             Screenshot
@@ -87,26 +87,26 @@ export function DisplayPanel() {
         </>
       )}
     </div>
-  );
+  )
 
   return (
     <Panel title="Display" toolbar={toolbar} className="flex-1 min-h-0">
-      {activeMode === 'vnc' ? (
+      {activeMode === "vnc" ? (
         <VncScreen
           url={vncUrl}
           scaleViewport
           background="#000000"
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
-            width: '100%',
-            height: '100%',
+            width: "100%",
+            height: "100%",
           }}
         />
       ) : (
         <ScreenshotView />
       )}
     </Panel>
-  );
+  )
 }

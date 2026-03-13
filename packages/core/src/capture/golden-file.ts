@@ -1,37 +1,34 @@
-import { readFileSync, existsSync } from 'node:fs';
-import { sha256 } from '@dosprobe/shared';
+import { readFileSync, existsSync } from "node:fs"
+import { sha256 } from "@dosprobe/shared"
 
 export interface GoldenComparison {
-  match: boolean;
-  goldenChecksum: string;
-  actualChecksum: string;
-  firstDiffOffset?: number;
-  goldenByte?: number;
-  actualByte?: number;
+  match: boolean
+  goldenChecksum: string
+  actualChecksum: string
+  firstDiffOffset?: number
+  goldenByte?: number
+  actualByte?: number
 }
 
-export function compareWithGolden(
-  goldenPath: string,
-  actualData: Buffer,
-): GoldenComparison {
+export function compareWithGolden(goldenPath: string, actualData: Buffer): GoldenComparison {
   if (!existsSync(goldenPath)) {
     return {
       match: false,
-      goldenChecksum: '',
+      goldenChecksum: "",
       actualChecksum: sha256(actualData),
-    };
+    }
   }
 
-  const goldenData = readFileSync(goldenPath);
-  const goldenChecksum = sha256(goldenData);
-  const actualChecksum = sha256(actualData);
+  const goldenData = readFileSync(goldenPath)
+  const goldenChecksum = sha256(goldenData)
+  const actualChecksum = sha256(actualData)
 
   if (goldenChecksum === actualChecksum) {
-    return { match: true, goldenChecksum, actualChecksum };
+    return { match: true, goldenChecksum, actualChecksum }
   }
 
   // Find first difference
-  const len = Math.min(goldenData.length, actualData.length);
+  const len = Math.min(goldenData.length, actualData.length)
   for (let i = 0; i < len; i++) {
     if (goldenData[i] !== actualData[i]) {
       return {
@@ -41,7 +38,7 @@ export function compareWithGolden(
         firstDiffOffset: i,
         goldenByte: goldenData[i],
         actualByte: actualData[i],
-      };
+      }
     }
   }
 
@@ -51,5 +48,5 @@ export function compareWithGolden(
     goldenChecksum,
     actualChecksum,
     firstDiffOffset: len,
-  };
+  }
 }

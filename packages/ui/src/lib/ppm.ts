@@ -2,79 +2,79 @@
  * Parse a binary PPM (P6) image into an ImageData object suitable for canvas rendering.
  */
 export function parsePPM(buffer: ArrayBuffer): ImageData {
-  const bytes = new Uint8Array(buffer);
-  let pos = 0;
+  const bytes = new Uint8Array(buffer)
+  let pos = 0
 
   function skipWhitespace() {
     while (pos < bytes.length) {
       // Skip comments
       if (bytes[pos] === 0x23 /* # */) {
-        while (pos < bytes.length && bytes[pos] !== 0x0a) pos++;
-        pos++; // skip newline
-        continue;
+        while (pos < bytes.length && bytes[pos] !== 0x0a) pos++
+        pos++ // skip newline
+        continue
       }
       if (bytes[pos] <= 0x20) {
-        pos++;
-        continue;
+        pos++
+        continue
       }
-      break;
+      break
     }
   }
 
   function readToken(): string {
-    skipWhitespace();
-    let token = '';
+    skipWhitespace()
+    let token = ""
     while (pos < bytes.length && bytes[pos] > 0x20) {
-      token += String.fromCharCode(bytes[pos]);
-      pos++;
+      token += String.fromCharCode(bytes[pos])
+      pos++
     }
-    return token;
+    return token
   }
 
-  const magic = readToken();
-  if (magic !== 'P6') {
-    throw new Error(`Unsupported PPM format: ${magic}`);
+  const magic = readToken()
+  if (magic !== "P6") {
+    throw new Error(`Unsupported PPM format: ${magic}`)
   }
 
-  const width = parseInt(readToken(), 10);
-  const height = parseInt(readToken(), 10);
-  const maxVal = parseInt(readToken(), 10);
+  const width = parseInt(readToken(), 10)
+  const height = parseInt(readToken(), 10)
+  const maxVal = parseInt(readToken(), 10)
 
   if (isNaN(width) || isNaN(height) || isNaN(maxVal)) {
-    throw new Error('Invalid PPM header');
+    throw new Error("Invalid PPM header")
   }
 
   // Skip single whitespace after maxval
-  pos++;
+  pos++
 
-  const imageData = new ImageData(width, height);
-  const pixels = imageData.data;
-  const scale = maxVal === 255 ? 1 : 255 / maxVal;
+  const imageData = new ImageData(width, height)
+  const pixels = imageData.data
+  const scale = maxVal === 255 ? 1 : 255 / maxVal
 
   for (let i = 0; i < width * height; i++) {
-    const r = bytes[pos++];
-    const g = bytes[pos++];
-    const b = bytes[pos++];
-    const pi = i * 4;
-    pixels[pi] = Math.round(r * scale);
-    pixels[pi + 1] = Math.round(g * scale);
-    pixels[pi + 2] = Math.round(b * scale);
-    pixels[pi + 3] = 255;
+    const r = bytes[pos++]
+    const g = bytes[pos++]
+    const b = bytes[pos++]
+    const pi = i * 4
+    pixels[pi] = Math.round(r * scale)
+    pixels[pi + 1] = Math.round(g * scale)
+    pixels[pi + 2] = Math.round(b * scale)
+    pixels[pi + 3] = 255
   }
 
-  return imageData;
+  return imageData
 }
 
 /**
  * Convert ImageData to a blob URL for use in <img> tags.
  */
 export function imageDataToBlobUrl(imageData: ImageData): string {
-  const canvas = document.createElement('canvas');
-  canvas.width = imageData.width;
-  canvas.height = imageData.height;
-  const ctx = canvas.getContext('2d')!;
-  ctx.putImageData(imageData, 0, 0);
+  const canvas = document.createElement("canvas")
+  canvas.width = imageData.width
+  canvas.height = imageData.height
+  const ctx = canvas.getContext("2d")!
+  ctx.putImageData(imageData, 0, 0)
 
   // Synchronously get a data URL (faster than async toBlob for small images)
-  return canvas.toDataURL('image/png');
+  return canvas.toDataURL("image/png")
 }

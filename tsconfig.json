@@ -18,10 +18,6 @@
       "@dosprobe/server": ["./packages/server/src/index.ts"]
     }
   },
-  "include": [
-    "packages/*/src/**/*.ts"
-  ],
-  "exclude": [
-    "packages/ui/**"
-  ]
+  "include": ["packages/*/src/**/*.ts"],
+  "exclude": ["packages/ui/**"]
 }

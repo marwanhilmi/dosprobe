@@ -103,23 +103,23 @@ Both backends implement the same abstract `Backend` interface: `readMemory`, `wr
 
 ## CLI Commands
 
-| Command | Description |
-|---------|-------------|
-| `dosprobe setup <qemu\|dosbox>` | Install dependencies, create disk images |
-| `dosprobe launch <mode>` | Start emulator (interactive, headless, debug, record, replay, game) |
-| `dosprobe screenshot` | Capture screen to file |
-| `dosprobe memory read <addr> <size>` | Dump memory region |
-| `dosprobe memory write <addr> <data>` | Write memory (base64) |
-| `dosprobe keys <keys...>` | Send keystrokes |
-| `dosprobe registers` | Read CPU registers |
-| `dosprobe capture` | Run capture pipeline (snapshot + keys + wait + optional custom memory ranges) |
-| `dosprobe snapshot <save\|load\|list>` | Manage VM snapshots |
-| `dosprobe golden <generate\|compare>` | Golden-file testing (framebuffer/screenshot/registers/custom memory) |
-| `dosprobe state <list\|info>` | DOSBox-X save states |
-| `dosprobe debug-script` | Generate DOSBox-X debugger script |
-| `dosprobe iso rebuild` | Rebuild shared files ISO (QEMU) |
-| `dosprobe serve` | Start REST + WebSocket API server |
-| `dosprobe perf` | Diagnose QEMU performance (accel + RPC microbenchmarks) |
+| Command                                | Description                                                                   |
+| -------------------------------------- | ----------------------------------------------------------------------------- |
+| `dosprobe setup <qemu\|dosbox>`        | Install dependencies, create disk images                                      |
+| `dosprobe launch <mode>`               | Start emulator (interactive, headless, debug, record, replay, game)           |
+| `dosprobe screenshot`                  | Capture screen to file                                                        |
+| `dosprobe memory read <addr> <size>`   | Dump memory region                                                            |
+| `dosprobe memory write <addr> <data>`  | Write memory (base64)                                                         |
+| `dosprobe keys <keys...>`              | Send keystrokes                                                               |
+| `dosprobe registers`                   | Read CPU registers                                                            |
+| `dosprobe capture`                     | Run capture pipeline (snapshot + keys + wait + optional custom memory ranges) |
+| `dosprobe snapshot <save\|load\|list>` | Manage VM snapshots                                                           |
+| `dosprobe golden <generate\|compare>`  | Golden-file testing (framebuffer/screenshot/registers/custom memory)          |
+| `dosprobe state <list\|info>`          | DOSBox-X save states                                                          |
+| `dosprobe debug-script`                | Generate DOSBox-X debugger script                                             |
+| `dosprobe iso rebuild`                 | Rebuild shared files ISO (QEMU)                                               |
+| `dosprobe serve`                       | Start REST + WebSocket API server                                             |
+| `dosprobe perf`                        | Diagnose QEMU performance (accel + RPC microbenchmarks)                       |
 
 Global options: `--backend qemu|dosbox`, `--project <path>`, `--verbose`, `--json`
 
@@ -128,12 +128,14 @@ Global options: `--backend qemu|dosbox`, `--project <path>`, `--verbose`, `--jso
 Start with `dosprobe serve --port 3000`. All endpoints are under `/api`.
 
 ### Backend & Lifecycle
+
 - `GET /api/backend` — status and type
 - `POST /api/backend/select` — `{ backend: "qemu"|"dosbox" }`
 - `POST /api/launch` — start emulator
 - `DELETE /api/launch` — shutdown
 
 ### Debug & Inspection
+
 - `GET /api/registers` — CPU registers
 - `GET /api/memory/:address/:size` — memory dump (raw binary or `?format=base64`)
 - `POST /api/memory/:address` — write memory (base64 body)
@@ -147,6 +149,7 @@ Start with `dosprobe serve --port 3000`. All endpoints are under `/api`.
 - `POST /api/execution/step` — single-step (returns registers)
 
 ### Snapshots & Capture
+
 - `GET /api/snapshots` — list snapshots
 - `POST /api/snapshots` — save or load snapshot
 - `GET /api/states` — DOSBox-X .dsx save states
@@ -163,12 +166,12 @@ Connect to `ws://localhost:3000/ws`. Messages are JSON. Binary data (memory dump
 
 Subscribe with `{ "type": "subscribe", "channel": "<name>" }`.
 
-| Channel | Events | Purpose |
-|---------|--------|---------|
-| `status` | `status:changed` | UI status indicator |
-| `debug` | `debug:breakpoint-hit`, `debug:step-complete` | Debugger panel |
-| `memory` | `memory:update` + binary frames | Memory viewer |
-| `capture` | `capture:progress`, `capture:complete` | Capture progress |
+| Channel   | Events                                        | Purpose             |
+| --------- | --------------------------------------------- | ------------------- |
+| `status`  | `status:changed`                              | UI status indicator |
+| `debug`   | `debug:breakpoint-hit`, `debug:step-complete` | Debugger panel      |
+| `memory`  | `memory:update` + binary frames               | Memory viewer       |
+| `capture` | `capture:progress`, `capture:complete`        | Capture progress    |
 
 ### Client Messages
 
@@ -207,12 +210,12 @@ When using WebSocket `memory:watch`, keep `intervalMs` at `>= 200` to avoid high
 
 ## Key Addresses (Mode 13h)
 
-| Address | Description |
-|---------|-------------|
+| Address   | Description                                        |
+| --------- | -------------------------------------------------- |
 | `0xA0000` | VGA framebuffer (320x200, 256 colors, 64000 bytes) |
-| `0xB8000` | Text mode video memory |
-| `0x00400` | BIOS Data Area |
-| `0x00000` | Interrupt Vector Table |
+| `0xB8000` | Text mode video memory                             |
+| `0x00400` | BIOS Data Area                                     |
+| `0x00000` | Interrupt Vector Table                             |
 
 ## Development
 
@@ -231,13 +234,13 @@ node packages/shared/src/hash.ts
 
 ## Toolchain
 
-| Component | Choice |
-|-----------|--------|
-| Runtime | Node.js native TypeScript (no build step) |
-| Type-checking | `tsc --noEmit` |
-| Monorepo | pnpm workspaces |
-| CLI | yargs |
-| HTTP | Hono |
-| WebSocket | ws |
-| UI | React + Vite |
-| Test | Vitest |
+| Component     | Choice                                    |
+| ------------- | ----------------------------------------- |
+| Runtime       | Node.js native TypeScript (no build step) |
+| Type-checking | `tsc --noEmit`                            |
+| Monorepo      | pnpm workspaces                           |
+| CLI           | yargs                                     |
+| HTTP          | Hono                                      |
+| WebSocket     | ws                                        |
+| UI            | React + Vite                              |
+| Test          | Vitest                                    |

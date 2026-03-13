@@ -1,40 +1,41 @@
-import { useState } from 'react';
-import { useBackend } from '../../contexts/BackendContext';
-import { selectBackend, shutdown } from '../../lib/api';
-import { Panel } from '../layout/Panel';
-import { ConnectionDot } from '../shared/ConnectionDot';
-import { LaunchDialog } from './LaunchDialog';
+import { useState } from "react"
+import { useBackend } from "../../contexts/BackendContext"
+import { selectBackend, shutdown } from "../../lib/api"
+import { Panel } from "../layout/Panel"
+import { ConnectionDot } from "../shared/ConnectionDot"
+import { LaunchDialog } from "./LaunchDialog"
 
 export function BackendPanel() {
-  const { backend, refresh } = useBackend();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [stopping, setStopping] = useState(false);
-  const [selectError, setSelectError] = useState<string | null>(null);
+  const { backend, refresh } = useBackend()
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [stopping, setStopping] = useState(false)
+  const [selectError, setSelectError] = useState<string | null>(null)
   // Local selection tracks the chosen backend type even before the server confirms
-  const [selectedType, setSelectedType] = useState<'qemu' | 'dosbox' | ''>(backend?.type ?? '');
+  const [selectedType, setSelectedType] = useState<"qemu" | "dosbox" | "">(backend?.type ?? "")
 
-  const activeType = backend?.type ?? selectedType;
-  const isActive = backend?.status === 'running' || backend?.status === 'paused' || backend?.status === 'launching';
+  const activeType = backend?.type ?? selectedType
+  const isActive =
+    backend?.status === "running" || backend?.status === "paused" || backend?.status === "launching"
 
   async function handleSelect(e: React.ChangeEvent<HTMLSelectElement>) {
-    const value = e.target.value as 'qemu' | 'dosbox';
-    setSelectedType(value);
-    setSelectError(null);
+    const value = e.target.value as "qemu" | "dosbox"
+    setSelectedType(value)
+    setSelectError(null)
     try {
-      await selectBackend(value);
-      refresh();
+      await selectBackend(value)
+      refresh()
     } catch (err) {
-      setSelectError(err instanceof Error ? err.message : 'Failed to select backend');
+      setSelectError(err instanceof Error ? err.message : "Failed to select backend")
     }
   }
 
   async function handleStop() {
-    setStopping(true);
+    setStopping(true)
     try {
-      await shutdown();
-      refresh();
+      await shutdown()
+      refresh()
     } finally {
-      setStopping(false);
+      setStopping(false)
     }
   }
 
@@ -49,21 +50,21 @@ export function BackendPanel() {
             disabled={isActive}
             className="bg-bg-tertiary border border-border-default rounded px-2 py-1 text-text-primary text-xs disabled:opacity-50"
           >
-            <option value="" disabled>Select...</option>
+            <option value="" disabled>
+              Select...
+            </option>
             <option value="qemu">QEMU</option>
             <option value="dosbox">DOSBox-X</option>
           </select>
         </div>
 
-        {selectError && (
-          <div className="text-accent-red text-xs">{selectError}</div>
-        )}
+        {selectError && <div className="text-accent-red text-xs">{selectError}</div>}
 
         <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
           <span className="text-text-secondary">Status:</span>
           <span className="flex items-center gap-1.5">
-            <ConnectionDot status={backend?.status ?? 'disconnected'} />
-            {backend?.status ?? 'disconnected'}
+            <ConnectionDot status={backend?.status ?? "disconnected"} />
+            {backend?.status ?? "disconnected"}
           </span>
 
           {backend?.pid && (
@@ -76,8 +77,8 @@ export function BackendPanel() {
           {backend?.connections?.qmp !== undefined && (
             <>
               <span className="text-text-secondary">QMP:</span>
-              <span className={backend.connections.qmp ? 'text-accent-green' : 'text-text-muted'}>
-                {backend.connections.qmp ? 'connected' : 'disconnected'}
+              <span className={backend.connections.qmp ? "text-accent-green" : "text-text-muted"}>
+                {backend.connections.qmp ? "connected" : "disconnected"}
               </span>
             </>
           )}
@@ -85,8 +86,8 @@ export function BackendPanel() {
           {backend?.connections?.gdb !== undefined && (
             <>
               <span className="text-text-secondary">GDB:</span>
-              <span className={backend.connections.gdb ? 'text-accent-green' : 'text-text-muted'}>
-                {backend.connections.gdb ? 'connected' : 'disconnected'}
+              <span className={backend.connections.gdb ? "text-accent-green" : "text-text-muted"}>
+                {backend.connections.gdb ? "connected" : "disconnected"}
               </span>
             </>
           )}
@@ -100,7 +101,7 @@ export function BackendPanel() {
               disabled={stopping}
               className="px-3 py-1 text-xs bg-accent-red/15 border border-accent-red/40 text-accent-red rounded hover:bg-accent-red/25 disabled:opacity-50"
             >
-              {stopping ? 'Stopping...' : 'Stop'}
+              {stopping ? "Stopping..." : "Stop"}
             </button>
           ) : (
             <button
@@ -117,8 +118,8 @@ export function BackendPanel() {
       <LaunchDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        backendType={activeType || 'qemu'}
+        backendType={activeType || "qemu"}
       />
     </Panel>
-  );
+  )
 }

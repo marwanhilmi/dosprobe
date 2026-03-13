@@ -1,4 +1,4 @@
-import type { ChannelManager } from '../channels.ts';
+import type { ChannelManager } from "../channels.ts"
 
 export function emitCaptureProgress(
   channels: ChannelManager,
@@ -6,22 +6,19 @@ export function emitCaptureProgress(
   stage: string,
   detail?: string,
 ): void {
-  channels.broadcast('capture', {
-    type: 'capture:progress',
+  channels.broadcast("capture", {
+    type: "capture:progress",
     captureId,
     stage,
     detail,
     timestamp: Date.now(),
-  });
+  })
 }
 
-export function emitCaptureComplete(
-  channels: ChannelManager,
-  captureId: string,
-): void {
-  channels.broadcast('capture', {
-    type: 'capture:complete',
+export function emitCaptureComplete(channels: ChannelManager, captureId: string): void {
+  channels.broadcast("capture", {
+    type: "capture:complete",
     captureId,
     timestamp: Date.now(),
-  });
+  })
 }
