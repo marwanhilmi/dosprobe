@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsgo -b && vite build",
-    "preview": "vite preview"
+    "dev": "vp dev",
+    "build": "tsgo -b && vp build",
+    "preview": "vp preview"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -21,6 +21,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.0",
     "tailwindcss": "^4.2.0",
-    "vite": "^8.0.0"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

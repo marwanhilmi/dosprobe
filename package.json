@@ -5,9 +5,9 @@
   "scripts": {
     "build:ui": "pnpm --filter ui build",
     "typecheck": "tsgo -b",
-    "test": "vitest",
-    "lint": "oxlint --type-aware --type-check",
-    "fmt": "oxfmt --write",
+    "test": "vp test",
+    "lint": "vp lint --type-aware --type-check",
+    "fmt": "vp fmt --write",
     "setup:agents": "dotagents install"
   },
   "dependencies": {
@@ -17,10 +17,9 @@
     "@sentry/dotagents": "^1.2.0",
     "@types/node": "^25.3.0",
     "@typescript/native-preview": "7.0.0-dev.20260310.1",
-    "oxfmt": "^0.37.0",
-    "oxlint": "^1.52.0",
-    "oxlint-tsgolint": "^0.16.0",
     "typescript": "^6.0.1-rc",
-    "vitest": "^4"
-  }
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
+  },
+  "packageManager": "pnpm@10.32.1"
 }
