@@ -21,7 +21,6 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.0",
     "tailwindcss": "^4.2.0",
-    "vite": "catalog:",
     "vite-plus": "catalog:"
   }
 }

@@ -16,7 +16,6 @@
     "@types/yargs": "^17",
     "@vitejs/plugin-react": "^6.0.0",
     "tailwindcss": "^4.2.1",
-    "vite": "catalog:",
     "vite-plus": "catalog:"
   }
 }
