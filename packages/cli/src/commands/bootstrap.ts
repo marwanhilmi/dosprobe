@@ -239,16 +239,6 @@ export const bootstrapCommand = defineCommand({
       // ── Step 5: Start server ──
       if (argv.port) {
         step(5, `Starting API server on port ${argv.port}`)
-        // Start serve in the same process by importing the handler
-        const serveArgs = [
-          process.argv[0]!,
-          process.argv[1]!,
-          "serve",
-          "--port",
-          `${argv.port}`,
-          "--project",
-          projectDir,
-        ]
         console.log(`  Server starting on http://localhost:${argv.port}`)
         console.log(`  Press Ctrl+C to stop`)
 

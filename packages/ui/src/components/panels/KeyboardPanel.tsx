@@ -78,7 +78,7 @@ export function KeyboardPanel() {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault()
-                handleSendText()
+                void handleSendText()
               }
             }}
             placeholder="type text to send..."
