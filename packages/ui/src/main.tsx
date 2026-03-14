@@ -4,13 +4,19 @@ import "./index.css"
 import App from "./App"
 import { WebSocketProvider } from "./contexts/WebSocketContext"
 import { BackendProvider } from "./contexts/BackendContext"
+import { ThemeProvider } from "@/components/theme-provider"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <WebSocketProvider>
-      <BackendProvider>
-        <App />
-      </BackendProvider>
-    </WebSocketProvider>
+    <ThemeProvider defaultTheme="dark">
+      <TooltipProvider>
+        <WebSocketProvider>
+          <BackendProvider>
+            <App />
+          </BackendProvider>
+        </WebSocketProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   </StrictMode>,
 )

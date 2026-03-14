@@ -4,8 +4,11 @@ import { useBreakpoints } from "../../hooks/useBreakpoints"
 import { useBackend } from "../../contexts/BackendContext"
 import { Panel } from "../layout/Panel"
 import { AddressInput } from "../shared/AddressInput"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import type { BreakpointType } from "../../types/api"
-import { clsx } from "clsx"
+import { cn } from "@/lib/utils"
 
 export function DebuggerPanel() {
   const { pause, resume, step, busy } = useExecution()
@@ -26,39 +29,40 @@ export function DebuggerPanel() {
       <div className="space-y-3">
         {/* Control buttons */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => pause()}
-            disabled={busy || !isRunning}
-            className="px-3 py-1 text-xs bg-bg-tertiary border border-border-default rounded hover:border-accent-blue disabled:opacity-40"
-          >
+          <Button variant="outline" size="xs" onClick={() => pause()} disabled={busy || !isRunning}>
             Pause
-          </button>
-          <button
+          </Button>
+          <Button
+            size="xs"
             onClick={() => resume()}
             disabled={busy || !isPaused}
-            className="px-3 py-1 text-xs bg-bg-tertiary border border-border-default rounded hover:border-accent-green disabled:opacity-40"
+            className="bg-success/20 text-success border-success/40 hover:bg-success/30"
           >
             Resume
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
             onClick={() => step()}
             disabled={busy || !isPaused}
-            className="px-3 py-1 text-xs bg-bg-tertiary border border-border-default rounded hover:border-accent-amber disabled:opacity-40"
+            className="text-warning border-warning/40 hover:bg-warning/20"
           >
             Step
-          </button>
+          </Button>
         </div>
 
-        {/* Add breakpoint */}
-        <div className="border-t border-border-default pt-2">
-          <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
+        <Separator />
+
+        {/* Breakpoints */}
+        <div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
             Breakpoints
           </div>
           <div className="flex items-center gap-1 mb-2">
             <select
               value={bpType}
               onChange={(e) => setBpType(e.target.value as BreakpointType)}
-              className="bg-bg-tertiary border border-border-default rounded px-1 py-1 text-xs text-text-primary"
+              className="bg-secondary border border-border rounded px-1 py-1 text-xs text-foreground h-7"
             >
               <option value="execution">exec</option>
               <option value="memory">mem</option>
@@ -71,31 +75,29 @@ export function DebuggerPanel() {
               placeholder="address"
               className="flex-1"
             />
-            <button
-              onClick={handleAddBreakpoint}
-              className="px-2 py-1 text-xs bg-bg-tertiary border border-border-default rounded hover:border-accent-blue"
-            >
+            <Button variant="outline" size="xs" onClick={handleAddBreakpoint}>
               +
-            </button>
+            </Button>
           </div>
 
-          {/* Breakpoint list */}
           {breakpoints.length === 0 ? (
-            <div className="text-text-muted text-xs">No breakpoints set</div>
+            <div className="text-muted-foreground text-xs">No breakpoints set</div>
           ) : (
             <div className="space-y-0.5">
               {breakpoints.map((bp) => (
                 <div
                   key={bp.id}
-                  className={clsx(
+                  className={cn(
                     "flex items-center justify-between px-2 py-0.5 rounded text-xs",
                     bp.id === activeBreakpointId
-                      ? "bg-accent-amber/20 border border-accent-amber/50"
-                      : "hover:bg-bg-tertiary",
+                      ? "bg-warning/20 border border-warning/50"
+                      : "hover:bg-accent",
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-text-muted">{bp.type.slice(0, 4)}</span>
+                    <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                      {bp.type.slice(0, 4)}
+                    </Badge>
                     <span className="font-mono">
                       {bp.address
                         ? `${bp.address.segOff.segment.toString(16)}:${bp.address.segOff.offset.toString(16)}`
@@ -104,15 +106,19 @@ export function DebuggerPanel() {
                           : bp.id}
                     </span>
                     {bp.id === activeBreakpointId && (
-                      <span className="text-accent-amber text-[10px]">HIT</span>
+                      <Badge className="text-[10px] px-1 py-0 h-4 bg-warning text-warning-foreground">
+                        HIT
+                      </Badge>
                     )}
                   </div>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
                     onClick={() => remove(bp.id)}
-                    className="text-text-muted hover:text-accent-red"
+                    className="text-muted-foreground hover:text-destructive h-5 w-5"
                   >
-                    x
-                  </button>
+                    ✕
+                  </Button>
                 </div>
               ))}
             </div>

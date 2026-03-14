@@ -1,25 +1,16 @@
-import { clsx } from "clsx"
+import { cn } from "@/lib/utils"
 
 const colorMap = {
-  connected: "bg-accent-green",
-  running: "bg-accent-green",
-  paused: "bg-accent-orange",
-  launching: "bg-accent-blue",
-  disconnected: "bg-text-muted",
-  error: "bg-accent-red",
+  connected: "bg-success",
+  running: "bg-success",
+  paused: "bg-warning",
+  launching: "bg-info animate-pulse",
+  disconnected: "bg-muted-foreground",
+  error: "bg-destructive",
 } as const
 
 type DotStatus = keyof typeof colorMap
 
 export function ConnectionDot({ status, className }: { status: DotStatus; className?: string }) {
-  return (
-    <span
-      className={clsx(
-        "inline-block h-2 w-2 rounded-full",
-        colorMap[status],
-        (status === "running" || status === "launching") && "animate-pulse",
-        className,
-      )}
-    />
-  )
+  return <span className={cn("inline-block h-2 w-2 rounded-full", colorMap[status], className)} />
 }

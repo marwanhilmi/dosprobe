@@ -4,13 +4,14 @@ import { selectBackend, shutdown } from "../../lib/api"
 import { Panel } from "../layout/Panel"
 import { ConnectionDot } from "../shared/ConnectionDot"
 import { LaunchDialog } from "./LaunchDialog"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 export function BackendPanel() {
   const { backend, refresh } = useBackend()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [stopping, setStopping] = useState(false)
   const [selectError, setSelectError] = useState<string | null>(null)
-  // Local selection tracks the chosen backend type even before the server confirms
   const [selectedType, setSelectedType] = useState<"qemu" | "dosbox" | "">(backend?.type ?? "")
 
   const activeType = backend?.type ?? selectedType
@@ -43,12 +44,12 @@ export function BackendPanel() {
     <Panel title="Backend">
       <div className="space-y-3 text-xs">
         <div className="flex items-center gap-2">
-          <label className="text-text-secondary">Backend:</label>
+          <span className="text-muted-foreground">Backend:</span>
           <select
             value={activeType}
             onChange={handleSelect}
             disabled={isActive}
-            className="bg-bg-tertiary border border-border-default rounded px-2 py-1 text-text-primary text-xs disabled:opacity-50"
+            className="bg-secondary border border-border rounded px-2 py-1 text-foreground text-xs disabled:opacity-50"
           >
             <option value="" disabled>
               Select...
@@ -58,59 +59,63 @@ export function BackendPanel() {
           </select>
         </div>
 
-        {selectError && <div className="text-accent-red text-xs">{selectError}</div>}
+        {selectError && <div className="text-destructive text-xs">{selectError}</div>}
 
         <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-          <span className="text-text-secondary">Status:</span>
+          <span className="text-muted-foreground">Status:</span>
           <span className="flex items-center gap-1.5">
             <ConnectionDot status={backend?.status ?? "disconnected"} />
-            {backend?.status ?? "disconnected"}
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+              {backend?.status ?? "disconnected"}
+            </Badge>
           </span>
 
           {backend?.pid && (
             <>
-              <span className="text-text-secondary">PID:</span>
-              <span>{backend.pid}</span>
+              <span className="text-muted-foreground">PID:</span>
+              <span className="font-mono">{backend.pid}</span>
             </>
           )}
 
           {backend?.connections?.qmp !== undefined && (
             <>
-              <span className="text-text-secondary">QMP:</span>
-              <span className={backend.connections.qmp ? "text-accent-green" : "text-text-muted"}>
+              <span className="text-muted-foreground">QMP:</span>
+              <Badge
+                variant={backend.connections.qmp ? "default" : "outline"}
+                className="text-[10px] px-1.5 py-0 h-4 w-fit"
+              >
                 {backend.connections.qmp ? "connected" : "disconnected"}
-              </span>
+              </Badge>
             </>
           )}
 
           {backend?.connections?.gdb !== undefined && (
             <>
-              <span className="text-text-secondary">GDB:</span>
-              <span className={backend.connections.gdb ? "text-accent-green" : "text-text-muted"}>
+              <span className="text-muted-foreground">GDB:</span>
+              <Badge
+                variant={backend.connections.gdb ? "default" : "outline"}
+                className="text-[10px] px-1.5 py-0 h-4 w-fit"
+              >
                 {backend.connections.gdb ? "connected" : "disconnected"}
-              </span>
+              </Badge>
             </>
           )}
         </div>
 
-        {/* Launch / Stop buttons */}
-        <div className="flex items-center gap-2 pt-1 border-t border-border-default">
+        <div className="flex items-center gap-2 pt-1 border-t">
           {isActive ? (
-            <button
-              onClick={handleStop}
-              disabled={stopping}
-              className="px-3 py-1 text-xs bg-accent-red/15 border border-accent-red/40 text-accent-red rounded hover:bg-accent-red/25 disabled:opacity-50"
-            >
+            <Button variant="destructive" size="xs" onClick={handleStop} disabled={stopping}>
               {stopping ? "Stopping..." : "Stop"}
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
+              size="xs"
               onClick={() => setDialogOpen(true)}
               disabled={!activeType}
-              className="px-3 py-1 text-xs bg-accent-green/15 border border-accent-green/40 text-accent-green rounded hover:bg-accent-green/25 disabled:opacity-40"
+              className="bg-success/20 text-success border-success/40 hover:bg-success/30"
             >
               Launch...
-            </button>
+            </Button>
           )}
         </div>
       </div>

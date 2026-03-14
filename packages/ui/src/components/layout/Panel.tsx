@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
-import { clsx } from "clsx"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 interface PanelProps {
   title: string
@@ -10,16 +11,14 @@ interface PanelProps {
 
 export function Panel({ title, toolbar, children, className }: PanelProps) {
   return (
-    <div
-      className={clsx("flex flex-col bg-bg-panel border border-border-default rounded", className)}
-    >
-      <div className="flex items-center justify-between px-3 py-1.5 bg-bg-secondary border-b border-border-default shrink-0">
-        <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
+    <Card className={cn("flex flex-col rounded-none border-0 border-b last:border-b-0", className)}>
+      <CardHeader className="flex flex-row items-center justify-between px-3 py-1.5 space-y-0 border-b shrink-0">
+        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           {title}
-        </span>
+        </CardTitle>
         {toolbar && <div className="flex items-center gap-1">{toolbar}</div>}
-      </div>
-      <div className="flex-1 overflow-auto p-2 relative min-h-0">{children}</div>
-    </div>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-auto p-2 relative min-h-0">{children}</CardContent>
+    </Card>
   )
 }
