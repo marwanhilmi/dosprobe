@@ -1,8 +1,45 @@
 import { spawn, type ChildProcess } from "node:child_process"
+import { existsSync } from "node:fs"
+import { platform } from "node:os"
 import type { QemuLaunchConfig } from "../types.ts"
 import { which } from "../util.ts"
 
 const DEFAULT_QEMU = "qemu-system-i386"
+
+/** Detect the best available QEMU display backend for the current platform. */
+function detectDisplay(): string {
+  switch (platform()) {
+    case "darwin":
+      return "cocoa"
+    case "linux":
+      return "gtk"
+    default:
+      return "sdl"
+  }
+}
+
+/** Detect the best available audio backend for the current platform. */
+function detectAudioBackend(): string {
+  switch (platform()) {
+    case "darwin":
+      return "coreaudio"
+    case "linux":
+      return "pa"
+    default:
+      return "none"
+  }
+}
+
+/** Detect the best available accelerator. KVM if /dev/kvm exists, otherwise TCG. */
+function detectAccelerator(): string {
+  if (platform() === "linux" && existsSync("/dev/kvm")) {
+    return "kvm"
+  }
+  if (platform() === "darwin") {
+    return "hvf"
+  }
+  return "tcg"
+}
 
 export class QemuLauncher {
   private process: ChildProcess | null = null
@@ -10,12 +47,15 @@ export class QemuLauncher {
   /** When true, QEMU monitor goes to stdio and the process inherits the terminal. */
   interactive = false
 
+  /** Detect the best available accelerator for the current platform. */
+  static detectAccelerator = detectAccelerator
+
   buildArgs(config: QemuLaunchConfig): string[] {
     const args: string[] = []
 
-    if (config.accel) {
-      args.push("-accel", config.accel)
-    }
+    // Accelerator: explicit, or auto-detect
+    args.push("-accel", config.accel ?? detectAccelerator())
+
     if (config.cpu) {
       args.push("-cpu", config.cpu)
     }
@@ -46,7 +86,7 @@ export class QemuLauncher {
     if (config.mode === "headless") {
       args.push("-display", "none")
     } else {
-      args.push("-display", config.display ?? "cocoa")
+      args.push("-display", config.display ?? detectDisplay())
     }
 
     if (config.vncPort) {
@@ -55,9 +95,9 @@ export class QemuLauncher {
     args.push("-vga", "std")
 
     // Audio — SB16 device is always present so DOS games detect it;
-    // headless uses a null audio backend to avoid CoreAudio dependency
+    // headless uses a null audio backend to avoid platform audio dependency
     if (config.audio !== false) {
-      const audioBackend = config.mode === "headless" ? "none" : "coreaudio"
+      const audioBackend = config.mode === "headless" ? "none" : detectAudioBackend()
       args.push(
         "-audiodev",
         `${audioBackend},id=audio0`,
@@ -110,20 +150,30 @@ export class QemuLauncher {
     })
 
     // Collect stderr for error reporting
-    let stderr = ""
+    const stderrChunks: string[] = []
     if (!this.interactive && this.process.stderr) {
       this.process.stderr.on("data", (chunk: Buffer) => {
-        stderr += chunk.toString()
+        stderrChunks.push(chunk.toString())
       })
     }
 
-    // Wait briefly for QEMU to start, then check if it crashed immediately
-    await new Promise((r) => setTimeout(r, 500))
-
-    if (this.process.exitCode !== null) {
-      const msg = stderr.trim() || "(no output captured — run in interactive mode to debug)"
-      throw new Error(`QEMU exited immediately (code ${this.process.exitCode}):\n${msg}`)
-    }
+    // Wait for QEMU to either start successfully or crash.
+    // Use the 'close' event (fires after stdio streams are closed) to ensure
+    // we capture all stderr output before reporting errors.
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => resolve(), 1500)
+      this.process!.on("close", (code) => {
+        clearTimeout(timer)
+        if (code !== null && code !== 0) {
+          const msg =
+            stderrChunks.join("").trim() ||
+            "(no output captured — run in interactive mode to debug)"
+          reject(new Error(`QEMU exited immediately (code ${code}):\n${msg}`))
+        } else {
+          resolve()
+        }
+      })
+    })
 
     return this.process
   }

@@ -77,14 +77,12 @@ function QemuForm({
         />
       </Field>
       <Field label="Display">
-        <select
-          className={selectClass}
-          value={config.display ?? "cocoa"}
-          onChange={(e) => set("display", e.target.value as "cocoa" | "none")}
-        >
-          <option value="cocoa">Cocoa</option>
-          <option value="none">None (headless)</option>
-        </select>
+        <input
+          className={inputClass}
+          value={config.display ?? ""}
+          onChange={(e) => set("display", e.target.value || undefined)}
+          placeholder="e.g. gtk, cocoa, sdl, none"
+        />
       </Field>
       <Field label="RAM (MB)">
         <input

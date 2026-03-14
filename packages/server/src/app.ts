@@ -31,7 +31,7 @@ export interface LaunchDefaults {
     qmpSocketPath: string
     capturesDir: string
     ram?: number
-    display?: "cocoa" | "none"
+    display?: string
     audio?: boolean
     gdbPort?: number
     accel?: string

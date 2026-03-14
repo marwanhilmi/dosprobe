@@ -72,6 +72,10 @@ export const launchCommand = defineCommand({
       .option("smp", {
         describe: "QEMU virtual CPU count",
         type: "number",
+      })
+      .option("display", {
+        describe: "QEMU display backend (e.g. gtk, cocoa, sdl, none)",
+        type: "string",
       }),
   handler: async (argv) => {
     const mode = argv.mode!
@@ -83,10 +87,9 @@ export const launchCommand = defineCommand({
 
     if (type === "qemu") {
       const launcher = new QemuLauncher()
-      launcher.interactive = true
-
       const qemuMode =
         mode === "game" ? "interactive" : (mode as "interactive" | "headless" | "record" | "replay")
+      launcher.interactive = qemuMode === "interactive" || qemuMode === "record"
       const rrFile =
         argv.rrfile ??
         (qemuMode === "record" || qemuMode === "replay"
@@ -123,6 +126,7 @@ export const launchCommand = defineCommand({
         diskImage: paths.diskImage,
         sharedIso: paths.sharedIso,
         gameIso,
+        display: argv.display ?? config.qemu?.display,
         accel: argv.accel ?? config.qemu?.accel,
         cpu: argv.cpu ?? config.qemu?.cpu,
         smp: argv.smp ?? config.qemu?.smp,
