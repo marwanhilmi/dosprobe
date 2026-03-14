@@ -92,7 +92,12 @@ export function SnapshotPanel() {
             placeholder="snapshot name"
             disabled={!active}
           />
-          <Button variant="outline" size="xs" onClick={handleSave} disabled={!active || !newName.trim()}>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={handleSave}
+            disabled={!active || !newName.trim()}
+          >
             Save
           </Button>
         </div>

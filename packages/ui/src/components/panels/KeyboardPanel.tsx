@@ -18,7 +18,20 @@ const COMMON_KEYS = [
   { label: "N", key: "n" },
 ] as const
 
-const FUNCTION_KEYS = ["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"] as const
+const FUNCTION_KEYS = [
+  "f1",
+  "f2",
+  "f3",
+  "f4",
+  "f5",
+  "f6",
+  "f7",
+  "f8",
+  "f9",
+  "f10",
+  "f11",
+  "f12",
+] as const
 
 export function KeyboardPanel() {
   const { isRunning, isPaused } = useBackend()

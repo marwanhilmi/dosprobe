@@ -132,7 +132,6 @@ export const launchCommand = defineCommand({
         smp: argv.smp ?? config.qemu?.smp,
         ram: argv.ram ?? config.qemu?.ram,
         gdbPort: config.qemu?.gdbPort,
-        display: config.qemu?.display,
         audio: config.qemu?.audio,
         qmpSocketPath: paths.qmpSocketPath,
         vncPort,

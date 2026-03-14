@@ -2,12 +2,7 @@ import { execSync, spawn } from "node:child_process"
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from "node:fs"
 import { basename, extname, join } from "node:path"
 import { tmpdir } from "node:os"
-import {
-  CONFIG_FILENAME,
-  QemuLauncher,
-  writeProjectConfig,
-  which,
-} from "@dosprobe/core"
+import { CONFIG_FILENAME, QemuLauncher, writeProjectConfig, which } from "@dosprobe/core"
 import type { ProjectConfig } from "@dosprobe/core"
 import { resolvePaths, ensureDirs, defineCommand } from "../resolve-backend.ts"
 
@@ -100,10 +95,13 @@ export const bootstrapCommand = defineCommand({
       if (!existsSync(paths.diskImage) || force) {
         console.log("  Running dosprobe setup qemu...")
         try {
-          execSync(`"${process.argv[0]}" "${process.argv[1]}" setup qemu ${force ? "--force" : ""} --project "${projectDir}"`, {
-            stdio: "inherit",
-            cwd: projectDir,
-          })
+          execSync(
+            `"${process.argv[0]}" "${process.argv[1]}" setup qemu ${force ? "--force" : ""} --project "${projectDir}"`,
+            {
+              stdio: "inherit",
+              cwd: projectDir,
+            },
+          )
         } catch {
           console.error("  Setup failed")
           process.exitCode = 1
@@ -255,10 +253,14 @@ export const bootstrapCommand = defineCommand({
         console.log(`  Press Ctrl+C to stop`)
 
         // Re-exec dosprobe serve as a child process
-        const serveProc = spawn(process.argv[0]!, [process.argv[1]!, "serve", "--port", `${argv.port}`, "--project", projectDir], {
-          stdio: "inherit",
-          env: process.env,
-        })
+        const serveProc = spawn(
+          process.argv[0]!,
+          [process.argv[1]!, "serve", "--port", `${argv.port}`, "--project", projectDir],
+          {
+            stdio: "inherit",
+            env: process.env,
+          },
+        )
 
         // Wait for either serve to exit or a signal
         await new Promise<void>((resolve) => {
