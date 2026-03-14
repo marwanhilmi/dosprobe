@@ -18,6 +18,8 @@ import { debugScriptCommand } from "./commands/debug-script.ts"
 import { isoCommand } from "./commands/iso.ts"
 import { serveCommand } from "./commands/serve.ts"
 import { perfCommand } from "./commands/perf.ts"
+import { fetchCommand } from "./commands/fetch.ts"
+import { bootstrapCommand } from "./commands/bootstrap.ts"
 
 await yargs(hideBin(process.argv))
   .scriptName("dosprobe")
@@ -56,7 +58,9 @@ await yargs(hideBin(process.argv))
   })
   .command(initCommand)
   .command(setupCommand)
+  .command(bootstrapCommand)
   .command(launchCommand)
+  .command(fetchCommand)
   .command(screenshotCommand)
   .command(memoryCommand)
   .command(keysCommand)
