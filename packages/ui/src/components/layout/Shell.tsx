@@ -9,14 +9,14 @@ interface ShellProps {
 
 export function Shell({ left, center, right }: ShellProps) {
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 grid grid-cols-[280px_1fr_360px] grid-rows-[1fr_1fr] gap-px bg-border-muted min-h-0">
-        {/* Left column spans both rows */}
-        <div className="row-span-2 flex flex-col gap-px bg-border-muted">{left}</div>
-        {/* Center column spans both rows */}
-        <div className="row-span-2 flex flex-col gap-px bg-border-muted">{center}</div>
-        {/* Right column: two rows */}
-        {right}
+    <div className="h-full flex flex-col bg-background">
+      <div className="flex-1 grid grid-cols-[280px_1fr_360px] gap-px bg-border min-h-0">
+        {/* Left column spans full height */}
+        <div className="flex flex-col bg-card overflow-auto">{left}</div>
+        {/* Center column */}
+        <div className="flex flex-col bg-card overflow-auto">{center}</div>
+        {/* Right column */}
+        <div className="flex flex-col bg-card overflow-auto">{right}</div>
       </div>
       <StatusBar />
     </div>

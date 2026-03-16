@@ -81,7 +81,7 @@ export interface QemuLaunchConfig {
   gdbPort?: number
   qmpSocketPath?: string
   vncPort?: number
-  display?: "cocoa" | "none"
+  display?: string
   audio?: boolean
   snapshot?: string
   recordFile?: string

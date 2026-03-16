@@ -2,6 +2,15 @@ import { useRegisters } from "../../hooks/useRegisters"
 import { toHex16, toHex32 } from "../../lib/hex"
 import { Panel } from "../layout/Panel"
 import { HexValue } from "../shared/HexValue"
+import { Button } from "@/components/ui/button"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import type { Registers } from "../../types/api"
 
 const GENERAL_REGS = ["eax", "ecx", "edx", "ebx"] as const
@@ -23,13 +32,15 @@ function RegRow({
   const changed = prevValue !== undefined && prevValue !== value
 
   return (
-    <tr className="hover:bg-bg-tertiary">
-      <td className="pr-3 text-text-secondary font-semibold">{name.toUpperCase()}</td>
-      <td className="font-mono">
+    <TableRow className="hover:bg-accent/50 border-0">
+      <TableCell className="py-0.5 pr-3 text-muted-foreground font-semibold text-xs">
+        {name.toUpperCase()}
+      </TableCell>
+      <TableCell className="py-0.5 font-mono text-xs">
         <HexValue value={`0x${hex}`} changed={changed} />
-      </td>
-      <td className="text-text-muted pl-2">{value}</td>
-    </tr>
+      </TableCell>
+      <TableCell className="py-0.5 text-muted-foreground pl-2 text-xs">{value}</TableCell>
+    </TableRow>
   )
 }
 
@@ -48,14 +59,14 @@ function RegGroup({
 }) {
   return (
     <>
-      <tr>
-        <td
+      <TableRow className="border-0">
+        <TableCell
           colSpan={3}
-          className="pt-2 pb-0.5 text-text-muted text-[10px] uppercase tracking-wider"
+          className="pt-2 pb-0.5 text-muted-foreground text-[10px] uppercase tracking-wider"
         >
           {title}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {regs.map((reg) => (
         <RegRow
           key={reg}
@@ -73,21 +84,24 @@ export function RegisterPanel() {
   const { registers, prevRegisters, loading, error, refresh } = useRegisters()
 
   const toolbar = (
-    <button
-      onClick={refresh}
-      disabled={loading}
-      className="px-2 py-0.5 text-xs bg-bg-tertiary border border-border-default rounded hover:border-accent-blue disabled:opacity-50"
-    >
+    <Button variant="outline" size="xs" onClick={refresh} disabled={loading}>
       {loading ? "..." : "Refresh"}
-    </button>
+    </Button>
   )
 
   return (
     <Panel title="Registers" toolbar={toolbar}>
-      {error && <div className="text-accent-red text-xs mb-2">{error}</div>}
+      {error && <div className="text-destructive text-xs mb-2">{error}</div>}
       {registers ? (
-        <table className="text-xs w-full">
-          <tbody>
+        <Table>
+          <TableHeader className="sr-only">
+            <TableRow>
+              <TableHead>Register</TableHead>
+              <TableHead>Hex</TableHead>
+              <TableHead>Decimal</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             <RegGroup
               title="General"
               regs={GENERAL_REGS}
@@ -107,19 +121,19 @@ export function RegisterPanel() {
               prevRegisters={prevRegisters}
               is16
             />
-            <tr>
-              <td
+            <TableRow className="border-0">
+              <TableCell
                 colSpan={3}
-                className="pt-2 pb-0.5 text-text-muted text-[10px] uppercase tracking-wider"
+                className="pt-2 pb-0.5 text-muted-foreground text-[10px] uppercase tracking-wider"
               >
                 Flags
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
             <RegRow name="EFLAGS" value={registers.eflags} prevValue={prevRegisters?.eflags} />
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       ) : (
-        <div className="flex items-center justify-center h-full text-text-muted text-xs">
+        <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
           {loading ? "Loading..." : "No register data"}
         </div>
       )}

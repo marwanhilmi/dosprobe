@@ -6,7 +6,7 @@ export interface ProjectConfig {
   game?: { exe?: string; iso?: string }
   qemu?: {
     ram?: number
-    display?: "cocoa" | "none"
+    display?: string
     audio?: boolean
     gdbPort?: number
     accel?: string
@@ -95,8 +95,8 @@ export function validateConfig(raw: unknown, filePath: string): ProjectConfig {
       config.qemu.ram = qemu["ram"]
     }
     if (qemu["display"] !== undefined) {
-      if (qemu["display"] !== "cocoa" && qemu["display"] !== "none")
-        throw new Error(`${filePath}: "qemu.display" must be "cocoa" or "none"`)
+      if (typeof qemu["display"] !== "string" || qemu["display"].trim().length === 0)
+        throw new Error(`${filePath}: "qemu.display" must be a non-empty string`)
       config.qemu.display = qemu["display"]
     }
     if (qemu["audio"] !== undefined) {

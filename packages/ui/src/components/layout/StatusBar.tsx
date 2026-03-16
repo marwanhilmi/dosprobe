@@ -1,5 +1,6 @@
 import { useBackend } from "../../contexts/BackendContext"
 import { useWebSocket } from "../../contexts/WebSocketContext"
+import { Badge } from "@/components/ui/badge"
 import { ConnectionDot } from "../shared/ConnectionDot"
 
 export function StatusBar() {
@@ -7,25 +8,31 @@ export function StatusBar() {
   const { connected } = useWebSocket()
 
   return (
-    <div className="flex items-center gap-4 px-3 py-1 bg-bg-secondary border-t border-border-default text-xs text-text-secondary">
+    <div className="flex items-center gap-4 px-3 py-1 bg-card border-t text-xs text-muted-foreground">
       <div className="flex items-center gap-1.5">
         <ConnectionDot status={backend?.status ?? "disconnected"} />
-        <span>{backend?.type ?? "no backend"}</span>
-        <span className="text-text-muted">({backend?.status ?? "disconnected"})</span>
+        <span className="font-medium">{backend?.type ?? "no backend"}</span>
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+          {backend?.status ?? "disconnected"}
+        </Badge>
       </div>
 
       {backend?.connections && (
-        <div className="flex items-center gap-2 text-text-muted">
+        <div className="flex items-center gap-2">
           {backend.connections.qmp !== undefined && (
-            <span>QMP: {backend.connections.qmp ? "ok" : "n/a"}</span>
+            <span className={backend.connections.qmp ? "text-success" : "text-muted-foreground"}>
+              QMP {backend.connections.qmp ? "✓" : "✗"}
+            </span>
           )}
           {backend.connections.gdb !== undefined && (
-            <span>GDB: {backend.connections.gdb ? "ok" : "n/a"}</span>
+            <span className={backend.connections.gdb ? "text-success" : "text-muted-foreground"}>
+              GDB {backend.connections.gdb ? "✓" : "✗"}
+            </span>
           )}
         </div>
       )}
 
-      {backend?.pid && <span className="text-text-muted">PID {backend.pid}</span>}
+      {backend?.pid && <span className="text-muted-foreground">PID {backend.pid}</span>}
 
       <div className="ml-auto flex items-center gap-1.5">
         <ConnectionDot status={connected ? "connected" : "disconnected"} />

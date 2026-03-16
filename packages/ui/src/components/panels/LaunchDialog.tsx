@@ -2,7 +2,18 @@ import { useEffect, useRef, useState } from "react"
 import type { DosboxLaunchConfig, QemuLaunchConfig } from "../../types/api"
 import { launch, selectBackend, getLaunchDefaults } from "../../lib/api"
 import { useBackend } from "../../contexts/BackendContext"
-import { clsx } from "clsx"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface LaunchDialogProps {
   open: boolean
@@ -10,22 +21,14 @@ interface LaunchDialogProps {
   backendType: "qemu" | "dosbox"
 }
 
-// ── Shared field component ──
-
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="grid grid-cols-[140px_1fr] items-center gap-2">
-      <span className="text-text-secondary text-xs text-right">{label}</span>
+    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+      <Label className="text-xs text-right">{label}</Label>
       <div>{children}</div>
-    </label>
+    </div>
   )
 }
-
-const inputClass =
-  "w-full bg-bg-tertiary border border-border-default rounded px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-accent-blue"
-const selectClass = inputClass
-
-// ── QEMU form ──
 
 function QemuForm({
   config,
@@ -42,7 +45,7 @@ function QemuForm({
     <div className="space-y-2">
       <Field label="Mode">
         <select
-          className={selectClass}
+          className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground h-7"
           value={config.mode}
           onChange={(e) => set("mode", e.target.value as QemuLaunchConfig["mode"])}
         >
@@ -53,124 +56,102 @@ function QemuForm({
         </select>
       </Field>
       <Field label="Disk Image *">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.diskImage}
           onChange={(e) => set("diskImage", e.target.value)}
           placeholder="/path/to/disk.img"
         />
       </Field>
       <Field label="Shared ISO">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.sharedIso ?? ""}
           onChange={(e) => set("sharedIso", e.target.value || undefined)}
           placeholder="/path/to/shared.iso"
         />
       </Field>
       <Field label="Game ISO">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.gameIso ?? ""}
           onChange={(e) => set("gameIso", e.target.value || undefined)}
           placeholder="/path/to/game.iso"
         />
       </Field>
       <Field label="Display">
-        <select
-          className={selectClass}
-          value={config.display ?? "cocoa"}
-          onChange={(e) => set("display", e.target.value as "cocoa" | "none")}
-        >
-          <option value="cocoa">Cocoa</option>
-          <option value="none">None (headless)</option>
-        </select>
+        <Input
+          className="h-7 text-xs"
+          value={config.display ?? ""}
+          onChange={(e) => set("display", e.target.value || undefined)}
+          placeholder="e.g. gtk, cocoa, sdl, none"
+        />
       </Field>
       <Field label="RAM (MB)">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           type="number"
           value={config.ram ?? 64}
           onChange={(e) => set("ram", Number(e.target.value) || undefined)}
         />
       </Field>
       <Field label="CPU">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.cpu ?? ""}
           onChange={(e) => set("cpu", e.target.value || undefined)}
           placeholder="e.g. 486"
         />
       </Field>
       <Field label="Accelerator">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.accel ?? ""}
           onChange={(e) => set("accel", e.target.value || undefined)}
-          placeholder="e.g. hvf, tcg"
+          placeholder="e.g. hvf, kvm, tcg"
         />
       </Field>
       <Field label="GDB Port">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           type="number"
           value={config.gdbPort ?? 1234}
           onChange={(e) => set("gdbPort", Number(e.target.value) || undefined)}
         />
       </Field>
       <Field label="QMP Socket">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.qmpSocketPath ?? ""}
           onChange={(e) => set("qmpSocketPath", e.target.value || undefined)}
           placeholder="/tmp/qmp.sock"
         />
       </Field>
       <Field label="VNC Port">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           type="number"
           value={config.vncPort ?? ""}
           onChange={(e) => set("vncPort", Number(e.target.value) || undefined)}
         />
       </Field>
       <Field label="Snapshot">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.snapshot ?? ""}
           onChange={(e) => set("snapshot", e.target.value || undefined)}
           placeholder="snapshot name"
         />
       </Field>
-      <Field label="Record File">
-        <input
-          className={inputClass}
-          value={config.recordFile ?? ""}
-          onChange={(e) => set("recordFile", e.target.value || undefined)}
-          placeholder="/path/to/record.bin"
-        />
-      </Field>
-      <Field label="Serial Log">
-        <input
-          className={inputClass}
-          value={config.serialLogPath ?? ""}
-          onChange={(e) => set("serialLogPath", e.target.value || undefined)}
-          placeholder="/path/to/serial.log"
-        />
-      </Field>
       <Field label="Audio">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={config.audio ?? true}
-          onChange={(e) => set("audio", e.target.checked)}
-          className="accent-accent-blue"
+          onCheckedChange={(checked) => set("audio", !!checked)}
         />
       </Field>
     </div>
   )
 }
-
-// ── DOSBox-X form ──
 
 function DosboxForm({
   config,
@@ -187,7 +168,7 @@ function DosboxForm({
     <div className="space-y-2">
       <Field label="Mode">
         <select
-          className={selectClass}
+          className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground h-7"
           value={config.mode}
           onChange={(e) => set("mode", e.target.value as DosboxLaunchConfig["mode"])}
         >
@@ -198,90 +179,54 @@ function DosboxForm({
         </select>
       </Field>
       <Field label="Drive C Path *">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.driveCPath}
           onChange={(e) => set("driveCPath", e.target.value)}
           placeholder="/path/to/drive_c"
         />
       </Field>
       <Field label="Game Executable">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.gameExe ?? ""}
           onChange={(e) => set("gameExe", e.target.value || undefined)}
           placeholder="GAME.EXE"
         />
       </Field>
       <Field label="Game ISO">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.gameIso ?? ""}
           onChange={(e) => set("gameIso", e.target.value || undefined)}
           placeholder="/path/to/game.iso"
         />
       </Field>
       <Field label="DOSBox-X Binary">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.dosboxBin ?? ""}
           onChange={(e) => set("dosboxBin", e.target.value || undefined)}
           placeholder="dosbox-x"
         />
       </Field>
       <Field label="Output">
-        <input
-          className={inputClass}
+        <Input
+          className="h-7 text-xs"
           value={config.output ?? ""}
           onChange={(e) => set("output", e.target.value || undefined)}
           placeholder="e.g. surface"
         />
       </Field>
-      <Field label="Config Path">
-        <input
-          className={inputClass}
-          value={config.configPath ?? ""}
-          onChange={(e) => set("configPath", e.target.value || undefined)}
-          placeholder="/path/to/dosbox-x.conf"
-        />
-      </Field>
-      <Field label="Debug Run File">
-        <input
-          className={inputClass}
-          value={config.debugRunFile ?? ""}
-          onChange={(e) => set("debugRunFile", e.target.value || undefined)}
-          placeholder="/path/to/debug.run"
-        />
-      </Field>
-      <Field label="Log File">
-        <input
-          className={inputClass}
-          value={config.logFile ?? ""}
-          onChange={(e) => set("logFile", e.target.value || undefined)}
-          placeholder="/path/to/dosbox.log"
-        />
-      </Field>
-      <Field label="Timeout (s)">
-        <input
-          className={inputClass}
-          type="number"
-          value={config.timeout ?? ""}
-          onChange={(e) => set("timeout", Number(e.target.value) || undefined)}
-        />
-      </Field>
       <Field label="Start Debugger">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={config.startDebugger ?? false}
-          onChange={(e) => set("startDebugger", e.target.checked)}
-          className="accent-accent-blue"
+          onCheckedChange={(checked) => set("startDebugger", !!checked)}
         />
       </Field>
     </div>
   )
 }
-
-// ── Main dialog ──
 
 const DEFAULT_QEMU: QemuLaunchConfig = {
   type: "qemu",
@@ -299,7 +244,6 @@ const DEFAULT_DOSBOX: DosboxLaunchConfig = {
 
 export function LaunchDialog({ open, onClose, backendType }: LaunchDialogProps) {
   const { refresh } = useBackend()
-  const dialogRef = useRef<HTMLDialogElement>(null)
 
   const [qemuConfig, setQemuConfig] = useState<QemuLaunchConfig>(DEFAULT_QEMU)
   const [dosboxConfig, setDosboxConfig] = useState<DosboxLaunchConfig>(DEFAULT_DOSBOX)
@@ -307,7 +251,6 @@ export function LaunchDialog({ open, onClose, backendType }: LaunchDialogProps) 
   const [launching, setLaunching] = useState(false)
   const defaultsLoaded = useRef(false)
 
-  // Fetch server-side launch defaults once
   useEffect(() => {
     if (defaultsLoaded.current) return
     defaultsLoaded.current = true
@@ -341,29 +284,11 @@ export function LaunchDialog({ open, onClose, backendType }: LaunchDialogProps) 
       })
   }, [])
 
-  useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-    if (open && !dialog.open) {
-      dialog.showModal()
-    } else if (!open && dialog.open) {
-      dialog.close()
-    }
-  }, [open])
-
-  // Close on backdrop click
-  function handleBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
-    if (e.target === dialogRef.current) {
-      onClose()
-    }
-  }
-
   async function handleLaunch() {
     setError(null)
     setLaunching(true)
     const config = backendType === "qemu" ? qemuConfig : dosboxConfig
 
-    // Basic validation
     if (backendType === "qemu" && !qemuConfig.diskImage.trim()) {
       setError("Disk image path is required")
       setLaunching(false)
@@ -376,7 +301,6 @@ export function LaunchDialog({ open, onClose, backendType }: LaunchDialogProps) 
     }
 
     try {
-      // Ensure backend type is selected on the server before launching
       await selectBackend(backendType)
       await launch(config)
       refresh()
@@ -389,32 +313,14 @@ export function LaunchDialog({ open, onClose, backendType }: LaunchDialogProps) 
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={onClose}
-      onClick={handleBackdropClick}
-      className={clsx(
-        "bg-bg-panel border border-border-default rounded-lg shadow-2xl",
-        "text-text-primary p-0 w-[520px] max-h-[80vh]",
-        "backdrop:bg-black/60",
-      )}
-    >
-      <div className="flex flex-col max-h-[80vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border-default bg-bg-secondary shrink-0">
-          <h2 className="text-sm font-semibold">
-            Launch {backendType === "qemu" ? "QEMU" : "DOSBox-X"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-text-muted hover:text-text-primary text-lg leading-none"
-          >
-            &times;
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-130 max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Launch {backendType === "qemu" ? "QEMU" : "DOSBox-X"}</DialogTitle>
+          <DialogDescription>Configure emulator settings and launch.</DialogDescription>
+        </DialogHeader>
 
-        {/* Body */}
-        <div className="overflow-y-auto p-4">
+        <div className="overflow-y-auto flex-1 py-2">
           {backendType === "qemu" ? (
             <QemuForm config={qemuConfig} onChange={setQemuConfig} />
           ) : (
@@ -422,26 +328,17 @@ export function LaunchDialog({ open, onClose, backendType }: LaunchDialogProps) 
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border-default bg-bg-secondary shrink-0">
-          <div className="text-xs text-accent-red min-h-[1em]">{error ?? ""}</div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="px-3 py-1.5 text-xs bg-bg-tertiary border border-border-default rounded hover:border-text-muted"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleLaunch}
-              disabled={launching}
-              className="px-3 py-1.5 text-xs bg-accent-green/20 border border-accent-green/50 text-accent-green rounded hover:bg-accent-green/30 disabled:opacity-50"
-            >
-              {launching ? "Launching..." : "Launch"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </dialog>
+        {error && <div className="text-destructive text-xs px-1">{error}</div>}
+
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleLaunch} disabled={launching}>
+            {launching ? "Launching..." : "Launch"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -1,5 +1,7 @@
 import { useState } from "react"
 import type { KeyboardEvent } from "react"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 
 interface AddressInputProps {
   value: string
@@ -20,7 +22,6 @@ export function AddressInput({
 
   function handleChange(raw: string) {
     onChange(raw)
-    // Accept hex (0xNNNN), segment:offset (NNNN:NNNN), or plain decimal
     const isValid =
       /^(0x[0-9a-fA-F]+|[0-9a-fA-F]{1,4}:[0-9a-fA-F]{1,4}|\d+)$/.test(raw.trim()) ||
       raw.trim() === ""
@@ -34,13 +35,17 @@ export function AddressInput({
   }
 
   return (
-    <input
+    <Input
       type="text"
       value={value}
       onChange={(e) => handleChange(e.target.value)}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
-      className={`bg-bg-tertiary border px-2 py-1 text-xs font-mono rounded ${valid ? "border-border-default" : "border-accent-red"} text-text-primary focus:outline-none focus:border-accent-blue ${className ?? ""}`}
+      className={cn(
+        "h-7 font-mono text-xs",
+        !valid && "border-destructive focus-visible:border-destructive",
+        className,
+      )}
     />
   )
 }
