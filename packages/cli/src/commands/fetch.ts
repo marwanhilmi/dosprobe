@@ -1,7 +1,13 @@
-import { execSync } from "node:child_process"
-import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from "node:fs"
+import { execFileSync } from "node:child_process"
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs"
 import { basename, extname, join } from "node:path"
 import { tmpdir } from "node:os"
+import {
+  copyDirectoryContents,
+  findAllFilesRecursive,
+  findFilesByExtension,
+  moveFile,
+} from "../file-utils.ts"
 import { resolveBackendType, resolvePaths, ensureDirs, defineCommand } from "../resolve-backend.ts"
 
 export const fetchCommand = defineCommand({
@@ -45,7 +51,7 @@ export const fetchCommand = defineCommand({
       // Download the file
       console.log(`Downloading ${url}...`)
       console.log(`  Destination: ${downloadPath}`)
-      execSync(`curl -L -o "${downloadPath}" "${url}"`, {
+      execFileSync("curl", ["-L", "-o", downloadPath, url], {
         stdio: "inherit",
         timeout: 600_000, // 10 minute timeout for large files
       })
@@ -65,16 +71,16 @@ export const fetchCommand = defineCommand({
         mkdirSync(extractDir, { recursive: true })
 
         console.log("Extracting ZIP archive...")
-        execSync(`unzip -o "${downloadPath}" -d "${extractDir}"`, {
+        execFileSync("unzip", ["-o", downloadPath, "-d", extractDir], {
           stdio: "inherit",
         })
 
         // Find ISO files recursively
-        const isoFiles = findFiles(extractDir, ".iso")
+        const isoFiles = findFilesByExtension(extractDir, ".iso")
 
         if (isoFiles.length === 0) {
           // No ISOs found — check for other game files
-          const allFiles = findAllFiles(extractDir)
+          const allFiles = findAllFilesRecursive(extractDir)
           console.log(`No ISO files found in archive. Found ${allFiles.length} files:`)
           for (const f of allFiles.slice(0, 20)) {
             const rel = f.slice(extractDir.length + 1)
@@ -86,26 +92,26 @@ export const fetchCommand = defineCommand({
 
           // Copy the entire extracted contents to the isos directory for manual handling
           console.log(`\nCopying extracted files to ${outputDir}`)
-          execSync(`cp -r "${extractDir}/"* "${outputDir}/"`, { stdio: "inherit" })
+          copyDirectoryContents(extractDir, outputDir)
         } else {
           console.log(`Found ${isoFiles.length} ISO file(s):`)
           for (const isoPath of isoFiles) {
             const isoName = basename(isoPath)
             const destPath = join(outputDir, isoName)
             console.log(`  ${isoName} → ${destPath}`)
-            renameSync(isoPath, destPath)
+            moveFile(isoPath, destPath)
           }
         }
       } else if (ext === ".iso") {
         // Direct ISO file — move to output
         const destPath = join(outputDir, urlFilename)
         console.log(`Moving ISO to ${destPath}`)
-        renameSync(downloadPath, destPath)
+        moveFile(downloadPath, destPath)
       } else {
         // Unknown format — just move to output directory
         const destPath = join(outputDir, urlFilename)
         console.log(`Moving file to ${destPath}`)
-        renameSync(downloadPath, destPath)
+        moveFile(downloadPath, destPath)
       }
 
       console.log("\nDone! ISOs are ready in:", outputDir)
@@ -133,39 +139,3 @@ export const fetchCommand = defineCommand({
     }
   },
 })
-
-function findFiles(dir: string, extension: string): string[] {
-  const results: string[] = []
-  try {
-    const entries = readdirSync(dir, { withFileTypes: true })
-    for (const entry of entries) {
-      const fullPath = join(dir, entry.name)
-      if (entry.isDirectory()) {
-        results.push(...findFiles(fullPath, extension))
-      } else if (entry.name.toLowerCase().endsWith(extension)) {
-        results.push(fullPath)
-      }
-    }
-  } catch {
-    // ignore permission errors etc.
-  }
-  return results
-}
-
-function findAllFiles(dir: string): string[] {
-  const results: string[] = []
-  try {
-    const entries = readdirSync(dir, { withFileTypes: true })
-    for (const entry of entries) {
-      const fullPath = join(dir, entry.name)
-      if (entry.isDirectory()) {
-        results.push(...findAllFiles(fullPath))
-      } else {
-        results.push(fullPath)
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return results
-}

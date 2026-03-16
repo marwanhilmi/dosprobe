@@ -230,7 +230,7 @@ function DosboxForm({
 
 const DEFAULT_QEMU: QemuLaunchConfig = {
   type: "qemu",
-  mode: "headless",
+  mode: "interactive",
   diskImage: "",
   audio: true,
   vncPort: 5900,
@@ -314,7 +314,7 @@ export function LaunchDialog({ open, onClose, backendType }: LaunchDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-[520px] max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-130 max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Launch {backendType === "qemu" ? "QEMU" : "DOSBox-X"}</DialogTitle>
           <DialogDescription>Configure emulator settings and launch.</DialogDescription>

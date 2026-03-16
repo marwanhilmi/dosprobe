@@ -1,9 +1,10 @@
-import { execSync, spawn } from "node:child_process"
-import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from "node:fs"
+import { execFileSync, spawn } from "node:child_process"
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs"
 import { basename, extname, join } from "node:path"
 import { tmpdir } from "node:os"
 import { CONFIG_FILENAME, QemuLauncher, writeProjectConfig, which } from "@dosprobe/core"
 import type { ProjectConfig } from "@dosprobe/core"
+import { copyDirectoryContents, findFilesByExtension, moveFile } from "../file-utils.ts"
 import { resolvePaths, ensureDirs, defineCommand } from "../resolve-backend.ts"
 
 function step(n: number, msg: string): void {
@@ -95,8 +96,16 @@ export const bootstrapCommand = defineCommand({
       if (!existsSync(paths.diskImage) || force) {
         console.log("  Running dosprobe setup qemu...")
         try {
-          execSync(
-            `"${process.argv[0]}" "${process.argv[1]}" setup qemu ${force ? "--force" : ""} --project "${projectDir}"`,
+          execFileSync(
+            process.argv[0]!,
+            [
+              process.argv[1]!,
+              "setup",
+              "qemu",
+              ...(force ? ["--force"] : []),
+              "--project",
+              projectDir,
+            ],
             {
               stdio: "inherit",
               cwd: projectDir,
@@ -132,7 +141,7 @@ export const bootstrapCommand = defineCommand({
 
       try {
         console.log(`  Downloading ${url}...`)
-        execSync(`curl -L -o "${downloadPath}" "${url}"`, {
+        execFileSync("curl", ["-L", "-o", downloadPath, url], {
           stdio: "inherit",
           timeout: 600_000,
         })
@@ -150,23 +159,23 @@ export const bootstrapCommand = defineCommand({
           const extractDir = join(tmpDir, "extracted")
           mkdirSync(extractDir, { recursive: true })
           console.log("  Extracting...")
-          execSync(`unzip -o "${downloadPath}" -d "${extractDir}"`, { stdio: "inherit" })
+          execFileSync("unzip", ["-o", downloadPath, "-d", extractDir], { stdio: "inherit" })
 
           // Find ISOs
-          const isoFiles = findFilesRecursive(extractDir, ".iso")
+          const isoFiles = findFilesByExtension(extractDir, ".iso")
           if (isoFiles.length > 0) {
             for (const isoPath of isoFiles) {
               const name = basename(isoPath)
               const dest = join(outputDir, name)
               console.log(`  Extracted ISO: ${name}`)
-              renameSync(isoPath, dest)
+              moveFile(isoPath, dest)
             }
           } else {
             console.log("  No ISO files found in archive, copying all files")
-            execSync(`cp -r "${extractDir}/"* "${outputDir}/"`, { stdio: "inherit" })
+            copyDirectoryContents(extractDir, outputDir)
           }
         } else if (ext === ".iso") {
-          renameSync(downloadPath, join(outputDir, urlFilename))
+          moveFile(downloadPath, join(outputDir, urlFilename))
         }
 
         // List resulting files
@@ -282,21 +291,3 @@ export const bootstrapCommand = defineCommand({
     }
   },
 })
-
-function findFilesRecursive(dir: string, extension: string): string[] {
-  const results: string[] = []
-  try {
-    const entries = readdirSync(dir, { withFileTypes: true })
-    for (const entry of entries) {
-      const fullPath = join(dir, entry.name)
-      if (entry.isDirectory()) {
-        results.push(...findFilesRecursive(fullPath, extension))
-      } else if (entry.name.toLowerCase().endsWith(extension)) {
-        results.push(fullPath)
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return results
-}
